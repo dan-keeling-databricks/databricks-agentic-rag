@@ -13,7 +13,7 @@ variables:
   warehouse_id:
     description: Serverless SQL warehouse used to read MLflow traces.
   app_name:
-    default: agentic-pdf-rag
+    default: agent-agentic-pdf-rag
   search_endpoint:
     default: agentic-pdf-rag-search
   agent_model:

@@ -18,9 +18,13 @@ settings after you understand the deployment steps.
 | `--catalog` | An existing Unity Catalog catalog where the solution can create schemas. | Required |
 | `--warehouse-id` | A usable SQL warehouse for reading MLflow's stored traces; serverless is preferred. | Required |
 | `--schema` | Dedicated schema for documents, model services and the search index. | `agentic_rag` |
-| `--app-name` | Workspace-unique Databricks App name. | `agentic-pdf-rag` |
+| `--app-name` | Workspace-unique Databricks App name. | `agent-agentic-pdf-rag` |
 | `--search-endpoint` | Name of the managed AI Search endpoint. | `agentic-pdf-rag-search` |
 | `--skip-sample-data` | Do not upload the public example corpus. Land your own PDFs before ingestion. | Off |
+
+Databricks App names cannot be changed in place. Changing `--app-name` creates
+a replacement app with a new URL and service identity. Use the setup script to
+apply the required resource permissions to that identity.
 
 The bundle uses target `demo`. It also creates `<schema>_traces` for MLflow trace
 storage. Choose a dedicated schema so that this reference's resources are easy

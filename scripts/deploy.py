@@ -50,7 +50,7 @@ def main():
     parser.add_argument("--catalog", required=True)
     parser.add_argument("--warehouse-id", required=True)
     parser.add_argument("--schema", default="agentic_rag")
-    parser.add_argument("--app-name", default="agentic-pdf-rag")
+    parser.add_argument("--app-name", default="agent-agentic-pdf-rag")
     parser.add_argument("--search-endpoint", default="agentic-pdf-rag-search")
     parser.add_argument("--skip-sample-data", action="store_true")
     args = parser.parse_args()
