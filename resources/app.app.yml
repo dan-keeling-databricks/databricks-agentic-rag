@@ -1,0 +1,55 @@
+resources:
+  apps:
+    rag:
+      name: ${var.app_name}
+      description: Ask questions about PDFs and inspect the end-to-end architecture.
+      source_code_path: ..
+      resources:
+        - name: agent-endpoint
+          uc_securable:
+            securable_type: MODEL_SERVICE
+            securable_full_name: ${resources.schemas.documents_schema.catalog_name}.${resources.schemas.documents_schema.name}.agent_model
+            permission: EXECUTE
+        - name: experiment
+          experiment:
+            experiment_id: ${resources.experiments.tracing.id}
+            permission: CAN_EDIT
+        - name: source-volume
+          uc_securable:
+            securable_type: VOLUME
+            securable_full_name: ${resources.volumes.source_documents.catalog_name}.${resources.volumes.source_documents.schema_name}.${resources.volumes.source_documents.name}
+            permission: READ_VOLUME
+        - name: trace-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+      config:
+        env:
+          - name: STREAMLIT_SERVER_ENABLE_CORS
+            value: 'false'
+          - name: STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION
+            value: 'false'
+          - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+            value: 'false'
+          - name: AGENT_ENDPOINT
+            value: ${var.catalog}.${var.schema}.agent_model
+          - name: USE_AI_GATEWAY
+            value: 'true'
+          - name: VECTOR_SEARCH_INDEX
+            value: ${var.catalog}.${var.schema}.document_index
+          - name: MLFLOW_EXPERIMENT_ID
+            value: ${resources.experiments.tracing.id}
+          - name: MLFLOW_TRACING_SQL_WAREHOUSE_ID
+            value: ${var.warehouse_id}
+          - name: SOURCE_VOLUME
+            value: /Volumes/${var.catalog}/${var.schema}/source_documents
+          - name: RAG_CATALOG
+            value: ${var.catalog}
+          - name: RAG_SCHEMA
+            value: ${var.schema}
+          - name: PIPELINE_ID
+            value: ${resources.pipelines.prepare_documents.id}
+          - name: INGESTION_JOB_ID
+            value: ${resources.jobs.ingest_documents.id}
+          - name: EVALUATION_JOB_ID
+            value: ${resources.jobs.evaluate_agent.id}

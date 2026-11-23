@@ -1,0 +1,65 @@
+resources:
+  schemas:
+    documents_schema:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: PDFs, prepared search content, and processing status for the RAG reference.
+    traces:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}_traces
+      comment: MLflow agent traces, kept separate from the read-only document corpus.
+  volumes:
+    source_documents:
+      catalog_name: ${resources.schemas.documents_schema.catalog_name}
+      schema_name: ${resources.schemas.documents_schema.name}
+      name: source_documents
+      volume_type: MANAGED
+  experiments:
+    tracing:
+      name: ${workspace.root_path}/PDF RAG evaluation and traces
+      trace_location:
+        uc_trace_location:
+          catalog: ${resources.schemas.traces.catalog_name}
+          schema: ${resources.schemas.traces.name}
+  model_services:
+    agent:
+      parent: schemas/${resources.schemas.documents_schema.catalog_name}.${resources.schemas.documents_schema.name}
+      model_service_id: agent_model
+      comment: Governed open-weight model for document questions.
+      config:
+        routing:
+          destinations:
+            - name: agent
+              destination_type: DESTINATION_TYPE_PAY_PER_TOKEN_FOUNDATION_MODEL
+              pay_per_token_config:
+                model: models/${var.agent_model}
+              traffic_percentage: 100
+    judge:
+      parent: schemas/${resources.schemas.documents_schema.catalog_name}.${resources.schemas.documents_schema.name}
+      model_service_id: judge_model
+      comment: Independent open-weight model for benchmark judging.
+      config:
+        routing:
+          destinations:
+            - name: judge
+              destination_type: DESTINATION_TYPE_PAY_PER_TOKEN_FOUNDATION_MODEL
+              pay_per_token_config:
+                model: models/${var.judge_model}
+              traffic_percentage: 100
+  vector_search_endpoints:
+    search:
+      name: ${var.search_endpoint}
+      endpoint_type: STANDARD
+  pipelines:
+    prepare_documents:
+      name: PDF RAG - prepare documents
+      catalog: ${resources.schemas.documents_schema.catalog_name}
+      schema: ${resources.schemas.documents_schema.name}
+      serverless: true
+      continuous: false
+      channel: ${var.pipeline_channel}
+      libraries:
+        - file:
+            path: ../src/pipeline/documents.py
+      configuration:
+        rag.source_volume: /Volumes/${resources.volumes.source_documents.catalog_name}/${resources.volumes.source_documents.schema_name}/${resources.volumes.source_documents.name}

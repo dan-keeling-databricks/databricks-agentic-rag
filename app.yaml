@@ -1,0 +1,14 @@
+command: ["python", "run_app.py"]
+env:
+  - name: AGENT_ENDPOINT
+    valueFrom: agent-endpoint
+  - name: MLFLOW_EXPERIMENT_ID
+    valueFrom: experiment
+  - name: SOURCE_VOLUME
+    valueFrom: source-volume
+  - name: STREAMLIT_SERVER_ENABLE_CORS
+    value: "false"
+  - name: STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION
+    value: "false"
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"

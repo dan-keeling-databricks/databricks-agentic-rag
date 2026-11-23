@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    evaluate_agent:
+      name: PDF RAG - evaluate answers
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: benchmark
+          environment_key: evaluation
+          spark_python_task:
+            python_file: ../scripts/run_evaluation.py
+            parameters:
+              - --agent-endpoint
+              - ${var.catalog}.${var.schema}.agent_model
+              - --judge-endpoint
+              - ${var.catalog}.${var.schema}.judge_model
+              - --index
+              - ${var.catalog}.${var.schema}.document_index
+              - --experiment-id
+              - ${resources.experiments.tracing.id}
+              - --warehouse-id
+              - ${var.warehouse_id}
+      environments:
+        - environment_key: evaluation
+          spec:
+            environment_version: '4'
+            dependencies:
+              - databricks-sdk==0.170.0
+              - databricks-openai==0.19.0
+              - mlflow[databricks]==3.18.0
+              - langgraph==1.2.23
+              - pandas>=2.2,<3

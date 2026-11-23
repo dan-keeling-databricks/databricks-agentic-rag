@@ -1,0 +1,39 @@
+bundle:
+  name: databricks-agentic-rag
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Existing Unity Catalog catalog where this solution may create schemas.
+  schema:
+    description: Dedicated schema for PDFs and prepared documents.
+    default: agentic_rag
+  warehouse_id:
+    description: Serverless SQL warehouse used to read MLflow traces.
+  app_name:
+    default: agentic-pdf-rag
+  search_endpoint:
+    default: agentic-pdf-rag-search
+  agent_model:
+    description: Open-weight foundation model behind the governed agent service.
+    default: system.ai.gpt-oss-120b
+  judge_model:
+    default: system.ai.llama_v3_3_70b_instruct
+  embedding_endpoint:
+    default: databricks-gte-large-en
+  pipeline_channel:
+    description: Requires a runtime supporting ai_prep_search; verify in your workspace.
+    default: PREVIEW
+
+sync:
+  exclude:
+    - tmp/**
+    - tests/**
+
+targets:
+  demo:
+    default: true
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

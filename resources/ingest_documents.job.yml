@@ -1,0 +1,30 @@
+resources:
+  jobs:
+    ingest_documents:
+      name: PDF RAG - ingest documents and refresh search
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: prepare
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.prepare_documents.id}
+        - task_key: refresh_search
+          depends_on:
+            - task_key: prepare
+          environment_key: sdk
+          spark_python_task:
+            python_file: ../scripts/sync_index.py
+            parameters:
+              - --index
+              - ${var.catalog}.${var.schema}.document_index
+              - --source-table
+              - ${var.catalog}.${var.schema}.document_chunks
+              - --endpoint
+              - ${resources.vector_search_endpoints.search.name}
+              - --embedding-endpoint
+              - ${var.embedding_endpoint}
+      environments:
+        - environment_key: sdk
+          spec:
+            environment_version: '4'
+            dependencies:
+              - databricks-sdk==0.170.0
