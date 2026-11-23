@@ -7,6 +7,7 @@ token. Re-running uses the same bundle state and skips already-uploaded PDFs.
 import argparse
 import json
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 
@@ -29,6 +30,17 @@ def grant(workspace, kind, name, principal, privileges):
         securable_type=kind, full_name=name,
         changes=[PermissionsChange(principal=principal, add=privileges)],
     )
+
+
+def has_pdfs(workspace, volume):
+    pending = [volume]
+    while pending:
+        for entry in workspace.files.list_directory_contents(pending.pop()):
+            if entry.is_directory:
+                pending.append(entry.path)
+            elif entry.path.lower().endswith(".pdf"):
+                return True
+    return False
 
 
 def main():
@@ -64,6 +76,10 @@ def main():
     if not args.skip_sample_data:
         subprocess.run([sys.executable, str(ROOT / "scripts/load_sample_documents.py"),
                         "--profile", args.profile, "--volume", volume], cwd=ROOT, check=True)
+    elif not has_pdfs(workspace, volume):
+        print(f"Infrastructure is deployed. Upload PDFs to {volume} before ingestion and app startup.")
+        print("Then rerun: " + shlex.join([sys.executable, *sys.argv]))
+        return
     cli(args.profile, "bundle", "run", "ingest_documents", "-t", "demo")
 
     # The index cannot be attached at app creation because its source pipeline

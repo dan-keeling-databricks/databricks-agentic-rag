@@ -59,6 +59,16 @@ def test_fast_sync_can_complete_between_polls_without_observed_busy_state():
     assert workspace.vector_search_indexes.get_index.call_count == 2
 
 
+def test_missing_detailed_state_requires_a_fresh_completed_backing_update():
+    workspace = Mock()
+    workspace.vector_search_indexes.get_index.return_value = index(state=None)
+    workspace.pipelines.list_updates.side_effect = [
+        updates(), updates(), updates("new", UpdateInfoState.RUNNING), updates("new"),
+    ]
+    refresh(workspace)
+    assert workspace.pipelines.list_updates.call_count == 4
+
+
 @pytest.mark.parametrize("state", [IndexStatus.OFFLINE_FAILED, IndexStatus.ONLINE_PIPELINE_FAILED])
 def test_queryable_but_failed_index_fails_immediately(state):
     workspace = Mock()

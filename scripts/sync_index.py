@@ -76,7 +76,9 @@ def refresh_index(workspace, index_name, source_table, endpoint, embedding_endpo
             if (
                 update.state == UpdateInfoState.COMPLETED
                 and status and status.ready
-                and status.detailed_state in {IndexStatus.ONLINE_NO_PENDING_UPDATE, IndexStatus.ONLINE}
+                # Older API responses omit detailed_state. The fresh completed
+                # backing update still proves this sync finished in that case.
+                and status.detailed_state in {None, IndexStatus.ONLINE_NO_PENDING_UPDATE, IndexStatus.ONLINE}
             ):
                 return index
         time.sleep(10)

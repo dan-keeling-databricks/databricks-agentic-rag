@@ -107,9 +107,10 @@ running the follow-on commands below. They contain deployment settings, not
 credentials, and are kept out of Git.
 
 Use `python scripts/deploy.py --help` for supported options. To start with your
-own documents rather than the sample corpus, pass `--skip-sample-data`; then
-follow the volume upload and ingestion steps below. An empty volume cannot
-produce useful search results until you add PDFs and run ingestion.
+own documents rather than the sample corpus, pass `--skip-sample-data`. If the
+volume is empty, setup creates the infrastructure and prints its upload location.
+Upload PDFs there through Catalog Explorer, then rerun the same setup command
+with `--skip-sample-data` to finish ingestion, permissions, and app startup.
 
 If setup reports an unsupported AI function, unavailable model, or permission
 error, resolve that prerequisite before proceeding. Check the failed pipeline
