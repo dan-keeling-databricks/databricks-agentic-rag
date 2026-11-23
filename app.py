@@ -94,7 +94,7 @@ with architecture_tab:
 3. **Read and prepare them.** The Lakeflow pipeline uses `ai_parse_document` to read PDF content, `ai_extract` to capture a title, summary and topics, and `ai_prep_search` to create useful passages for search. Intermediate results and processing errors are stored in Delta tables.
 4. **Update the search index.** Databricks AI Search creates numerical representations of the passages and synchronizes the index after the pipeline finishes. Search combines meaning with matching words.
 5. **Answer a question.** A LangGraph agent searches, checks the evidence, and can refine its search. It answers only when evidence is sufficient, attaching document and page references.
-6. **Measure and inspect.** MLflow records requests, model calls and retrieved passages. A separate evaluation job runs the benchmark and AI judges assess answer quality.
+6. **Measure and inspect.** MLflow records requests, model calls and retrieved passages. Its managed dataset holds benchmark questions and reference answers, and its registered scorers define the AI and code checks. An evaluation notebook asks the same agent those questions and saves the results in the experiment.
 """)
     st.graphviz_chart('''digraph {
       rankdir=LR;
@@ -104,7 +104,7 @@ with architecture_tab:
       "LangGraph agent" -> "AI Search" [label="search / refine"];
       "LangGraph agent" -> "Cited answer";
       "LangGraph agent" -> "MLflow traces";
-      "20-question benchmark" -> "Evaluation + AI judges" -> "MLflow results";
+      "MLflow dataset + registered scorers" -> "Evaluation notebook" -> "MLflow results";
     }''')
     st.subheader("Open the deployed components")
     host = os.getenv("DATABRICKS_HOST", "")

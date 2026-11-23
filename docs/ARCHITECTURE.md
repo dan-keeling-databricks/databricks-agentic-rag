@@ -16,7 +16,7 @@ flowchart LR
     I -->|Find evidence; refine if needed| G
     I --> J[Answer with document and page references]
     I --> K[MLflow traces]
-    L[20-question benchmark] --> M[Evaluation job and AI judges]
+    L[Managed MLflow dataset and registered scorers] --> M[Evaluation notebook and AI judges]
     M --> N[MLflow results]
 ```
 
@@ -114,11 +114,23 @@ timing. Traces are stored in a separate `<schema>_traces` Unity Catalog schema.
 Keeping traces separate lets the app write tracing data while its document
 collection remains read-only.
 
-The evaluation job calls the same Python agent used by the app. It runs the
-source-grounded benchmark, uses AI judges for semantic checks, and records
-deterministic measures such as citation validity and latency. Results establish
-a measured baseline, not a promise of production accuracy. Benchmark reference
-answers are provided for customer review.
+The explicit setup notebook seeds a managed Unity Catalog evaluation dataset,
+links it to the experiment, and registers versioned scorers. The JSONL question
+file in this repository is only a portable starter; ordinary evaluations use
+the managed dataset without replacing customer edits.
+
+The evaluation notebook calls the same Python agent used by the app. It loads
+that dataset and the registered scorers, then uses `mlflow.genai.evaluate()` for
+native MLflow results. AI judges assess semantic quality; code measures citation
+validity, evidence-page recall and latency. The experiment's Datasets, Scorers
+and evaluation runs are the source of truth. There is no separate local runner
+or generated-report workflow. See [evaluation](EVALUATION.md) for the setup and
+run steps.
+
+Reference answers need customer review. New runs establish a measured baseline,
+not a promise of production accuracy. Automatic production monitoring is not
+enabled: reference answers and evidence pages are not available for arbitrary
+live chat questions.
 
 Questions, recent chat context and retrieved passages can contain sensitive
 information and are included in traces. Review retention, access and redaction

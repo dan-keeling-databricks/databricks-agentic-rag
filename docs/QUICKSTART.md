@@ -147,16 +147,41 @@ from the configured experiment, including other users' questions and document
 excerpts. The chat itself remains session-based. Review this access model before
 using sensitive questions or PDFs.
 
-## 5. Run the benchmark
+## 5. Set up and run evaluation
+
+Run this explicit setup once after deployment and ingestion:
+
+```bash
+databricks bundle run setup_evaluation -t demo --profile YOUR_PROFILE
+```
+
+It seeds the managed `YOUR_CATALOG.agentic_rag.evaluation_questions` dataset and
+registers the scoring definitions in the existing MLflow experiment. Substitute
+your chosen schema if you changed the default. Open the experiment from the
+Architecture tab and inspect its **Datasets** and **Scorers** areas.
+
+The repository's `evaluation/benchmark.jsonl` is only the starter question set.
+After setup, maintain questions and reference answers in the managed dataset.
+Normal benchmark runs do not overwrite your edits or register new scorer versions.
+Rerunning setup preserves an existing dataset and publishes scorer versions;
+use it deliberately after changing scorer definitions.
+
+Then run an evaluation:
 
 ```bash
 databricks bundle run evaluate_agent -t demo --profile YOUR_PROFILE
 ```
 
-Open the evaluation job run and the MLflow experiment linked from the app's
-Architecture tab. Review both the overall results and individual questions:
+The job runs `notebooks/evaluate_agent.py`: it loads the managed dataset and
+registered scorers, calls the same agent as the app, and evaluates it with
+`mlflow.genai.evaluate()`. Open the native evaluation run in the MLflow experiment.
+Review both the overall results and individual questions:
 expected answer, generated answer, judge reasoning, retrieved passages, timing,
 and trace. A high average can hide a poor answer to an important question.
+
+For the native UI workflow, choose **Run evaluation → Use code** and use the
+deployed notebook for these custom scoring functions. **Select traces** can
+rescore existing answers when their reference expectations are available.
 
 The initial 20 questions cover factual lookup, combining documents, follow-ups,
 and insufficient-evidence cases. Reference answers come from the sample PDFs and
@@ -180,9 +205,9 @@ Evaluation calls models and incurs inference charges each time it runs.
 
 4. Inspect `document_processing_status` in Catalog Explorer. Confirm your files
    are ready and the search index update completed before asking about them.
-5. Add representative questions and reviewed answers to your own benchmark,
-   then rerun evaluation. The supplied benchmark remains specific to its sample
-   documents.
+5. Add representative questions and reviewed answers to the managed MLflow
+   dataset, then rerun evaluation. The starter questions remain specific to the
+   sample documents. See [evaluation](EVALUATION.md) for reference-field formats.
 
 See [the pipeline guide](PIPELINE.md) for the saved stages, failure statuses, and
 reprocessing guidance.

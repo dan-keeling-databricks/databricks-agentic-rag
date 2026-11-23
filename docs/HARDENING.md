@@ -84,6 +84,17 @@ and consider a different judge model from the answering model. Use deterministic
 checks for citation references and timing alongside semantic judgments. A valid
 page number alone does not prove that the page supports the answer.
 
+Use MLflow Reviews or labeling workflows to collect expert feedback and resolve
+disagreements with AI judges. Consider judge alignment, including MemAlign where
+appropriate, after collecting representative human assessments. Manage reference
+questions in the linked MLflow dataset and register reviewed scorer versions;
+do not let routine evaluation runs overwrite managed edits.
+
+The reference does not enable automatic production monitoring. Its correctness
+and retrieval checks require reference answers, facts and evidence pages that
+are usually absent from live chat. Design separate checks suitable for live
+traffic, sampling and human review before starting a monitoring schedule.
+
 Set quality and latency thresholds appropriate to the intended use, then make
 regression checks part of releases. Keep a reviewed evaluation set separate from
 questions used to tune prompts. Record model versions, prompts, chunking settings,

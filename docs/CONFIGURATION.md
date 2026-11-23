@@ -59,8 +59,8 @@ the app's `config.env` section and redeploy. The evaluation job sets its own
 `JUDGE_ENDPOINT`; it is not needed by the chat app. If you change agent settings,
 apply the same settings to the evaluation job when comparing its results.
 
-For local use, set variables in your shell and authenticate with your chosen CLI
-profile. Never put credentials in a configuration file committed to Git.
+For local app development, set variables in your shell and authenticate with your
+chosen CLI profile. Never put credentials in a configuration file committed to Git.
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
@@ -73,7 +73,7 @@ profile. Never put credentials in a configuration file committed to Git.
 | `RETRIEVAL_K` | Maximum passages returned per search; must be between 1 and 50. | `6` |
 | `MAX_CONTEXT_CHARACTERS` | Total retrieved-text characters allowed in an agent prompt. Complete passages that exceed the remaining budget are omitted. | `48000` |
 | `MAX_HISTORY_MESSAGES` | Recent user/assistant messages passed for follow-up questions. Set `0` to omit chat context. | `12` |
-| `JUDGE_ENDPOINT` | Model-service name used by evaluation judges. | Agent endpoint when unset locally; bundle evaluation uses a separate judge service |
+| `JUDGE_ENDPOINT` | Model-service name selected when setting up evaluation. Saved AI scorer definitions retain their registered model route. | Bundle notebooks supply the separate judge service |
 
 MLflow uses `MLFLOW_TRACKING_URI`, defaulting to `databricks`. When running locally
 with a named profile, use `databricks://YOUR_PROFILE` and set
@@ -88,7 +88,7 @@ chain inside serverless jobs. The SDK factory is deprecated but supported by the
 pinned version; a future lean replacement can be adopted after compatibility
 testing. This does not change model access or require managing tokens yourself.
 
-The serverless evaluation job installs `mlflow-skinny` at the same pinned MLflow
+The serverless evaluation notebooks install `mlflow-skinny` at the same pinned MLflow
 version. It includes GenAI evaluation and tracing while omitting unrelated model
 training and web-server packages. The app/local requirements use the full MLflow
 distribution; agent behavior, scorers, prompts, and MLflow API versions are shared.
@@ -97,6 +97,26 @@ distribution; agent behavior, scorers, prompts, and MLflow API versions are shar
 Catalog traces. The bundle supplies it and grants the app's identity warehouse
 access. The experiment is bound to its trace schema during deployment; changing
 an environment variable is not a migration of an existing experiment's storage.
+
+### Managed evaluation settings
+
+The explicit `setup_evaluation` job seeds
+`<catalog>.<schema>.evaluation_questions` when it does not exist, links it to the
+experiment and registers scorer versions. If the dataset already exists, setup
+leaves its records unchanged. The regular `evaluate_agent` job reads those
+managed assets; it does not seed questions or register definitions.
+
+| Notebook or job parameter | Meaning | Default |
+| --- | --- | --- |
+| `dataset_name` | Fully qualified MLflow-managed question dataset. The bundle supplies it. | `<catalog>.<schema>.evaluation_questions` |
+| `dataset_version` | A saved dataset version to evaluate. | Blank: resolve latest once when the run starts |
+| `scorer_versions` | JSON object mapping all six active scorer names to registered version numbers. | `{}`: resolve latest once when the run starts |
+
+Inspect dataset and scorer versions in the MLflow experiment. The evaluation
+notebook records the resolved versions with its run so they can be selected for
+a repeatable comparison. Updating the model route in a saved AI scorer requires
+registering a new definition/version; changing an environment variable alone
+does not rewrite the registry. See [evaluation](EVALUATION.md).
 
 ### Architecture links and startup
 

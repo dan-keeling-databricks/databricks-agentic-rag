@@ -1,5 +1,6 @@
-# Dependencies for the Streamlit app and local evaluation.
-# The serverless job uses the same MLflow version's smaller SDK distribution.
+# Dependencies for the Streamlit app and local development.
+# Native evaluation notebooks have their own bundle-managed environment,
+# including databricks-agents for MLflow-managed datasets.
 databricks-sdk==0.170.0
 langgraph==1.2.23
 mlflow==3.18.0

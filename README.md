@@ -28,8 +28,9 @@ prerequisites, deployment, your first question, and the benchmark.
    its search. It makes at most three searches by default, then answers with
    document/page citations or acknowledges missing evidence.
 5. **Inspect and measure it.** MLflow records traces: the steps, model calls,
-   searches, and timings behind an answer. A separate evaluation job runs a
-   20-question benchmark and uses AI judges to help assess answer quality.
+   searches, and timings behind an answer. Its managed dataset holds the test
+   questions and reference answers; registered scorers define how to judge them.
+   A separate notebook job evaluates the agent and saves its results in MLflow.
 
 This approach is often called **retrieval-augmented generation**, or **RAG**:
 find useful source material first, then ask the model to answer using it.
@@ -48,7 +49,8 @@ find useful source material first, then ask the model to answer using it.
 - A portable **Databricks bundle**: a set of configuration files that creates the
   solution's resources in your own workspace.
 - A fixed version of public sample PDFs, test questions with answers checked
-  against those documents, and instructions for comparing changes using MLflow.
+  against those documents, and instructions for managing questions and comparing
+  changes in MLflow's Datasets, Scorers and evaluation runs.
 - Notes on what to change before operating this as a production service.
 
 The sample contains **29 public Databricks PDFs**. Larger collections need
@@ -69,8 +71,11 @@ python scripts/deploy.py \
 You choose the workspace through your Databricks CLI profile. Configuration
 controls resource names and model endpoints; you do not edit the application
 code to change workspaces. The setup command deploys the bundle, loads the sample
-PDFs, runs ingestion and index preparation, and starts the app. Evaluation runs
-separately so you can repeat it after making a change.
+PDFs, runs ingestion and index preparation, and starts the app. Next, run the
+explicit evaluation setup job once to seed MLflow's managed questions and
+registered scorers. Ordinary evaluations use those managed assets and preserve
+your edits. The [quickstart](docs/QUICKSTART.md#5-set-up-and-run-evaluation)
+shows both commands.
 
 The solution prefers serverless compute and open-weight answer/judge models
 through Databricks' gateway. The built-in document AI functions select their own
@@ -92,12 +97,12 @@ see the quickstart before deploying.
 | [Operations](docs/OPERATIONS.md) | Adding documents, checking failures, permissions, costs, and cleanup. |
 | [Operational hardening](docs/HARDENING.md) | What to add for production access control, reliability, cost management, and quality assurance. |
 | [Agent code](src/rag/agent.py) | How the bounded search-and-answer loop works. |
-| [Benchmark questions](evaluation/benchmark.jsonl) | Questions, reference answers, and source evidence used for evaluation. |
+| [Starter benchmark](evaluation/benchmark.jsonl) | Portable seed questions and references; manage the live dataset in MLflow after setup. |
 
 The evaluation questions omit source-document titles and filenames, including in
 follow-up histories. Scoring references retain the supporting pages and quotes.
 
-The benchmark's reference answers were authored from the sample documents. They
+The starter reference answers were authored from the sample documents. They
 are a starting point for review, rather than customer-approved answers. AI judge
 scores are useful measurements, not a guarantee that an answer is correct.
 

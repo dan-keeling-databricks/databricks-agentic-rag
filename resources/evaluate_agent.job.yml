@@ -1,38 +1,37 @@
+# Evaluation reads the managed dataset and saved scorers without reseeding.
 resources:
   jobs:
     evaluate_agent:
-      name: PDF RAG - evaluate answers
+      name: PDF RAG - MLflow evaluation
       max_concurrent_runs: 1
       parameters:
-        - name: question_limit
-          default: '0'
+      - name: dataset_version
+        default: ''
+      - name: scorer_versions
+        default: '{}'
       tasks:
-        - task_key: benchmark
-          environment_key: evaluation
-          spark_python_task:
-            python_file: ../scripts/run_evaluation.py
-            parameters:
-              - --agent-endpoint
-              - ${var.catalog}.${var.schema}.agent_model
-              - --judge-endpoint
-              - ${var.catalog}.${var.schema}.judge_model
-              - --index
-              - ${var.catalog}.${var.schema}.document_index
-              - --experiment-id
-              - ${resources.experiments.tracing.id}
-              - --warehouse-id
-              - ${var.warehouse_id}
-              - --limit
-              - '{{job.parameters.question_limit}}'
+      - task_key: benchmark
+        environment_key: evaluation
+        notebook_task:
+          notebook_path: ../notebooks/evaluate_agent.py
+          base_parameters:
+            source_root: ${workspace.file_path}
+            dataset_name: ${var.catalog}.${var.schema}.evaluation_questions
+            experiment_id: ${resources.experiments.tracing.id}
+            agent_endpoint: ${var.catalog}.${var.schema}.agent_model
+            judge_endpoint: ${var.catalog}.${var.schema}.judge_model
+            index_name: ${var.catalog}.${var.schema}.document_index
+            warehouse_id: ${var.warehouse_id}
+            dataset_version: '{{job.parameters.dataset_version}}'
+            scorer_versions: '{{job.parameters.scorer_versions}}'
       environments:
-        - environment_key: evaluation
-          spec:
-            # Python 3.11, matching Databricks Apps; this job calls APIs and needs no Spark runtime features.
-            environment_version: '2'
-            dependencies:
-              - databricks-sdk==0.170.0
-              - openai==2.54.0
-              # GenAI evaluation/tracing are included; omit unused ML training/server libraries.
-              - mlflow-skinny==3.18.0
-              - langgraph==1.2.23
-              - pandas>=2.2,<3
+      - environment_key: evaluation
+        spec:
+          environment_version: '2'
+          dependencies:
+          - databricks-sdk==0.170.0
+          - databricks-agents==1.13.0
+          - openai==2.54.0
+          - mlflow-skinny==3.18.0
+          - langgraph==1.2.23
+          - pandas>=2.2,<3

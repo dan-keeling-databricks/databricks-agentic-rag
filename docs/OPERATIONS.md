@@ -32,16 +32,27 @@ python scripts/validate_data.py --profile YOUR_PROFILE \
 
 ## Evaluate changes
 
-Run the evaluation job and inspect its MLflow run:
+Complete the explicit `setup_evaluation` job once to seed the managed dataset
+and register scorers. Maintain questions and reviewed answers in the MLflow
+experiment's **Datasets** area, and inspect scoring definitions in **Scorers**.
+An ordinary evaluation does not reseed the questions or register new versions.
+
+Run the evaluation notebook job and inspect its native MLflow run:
 
 ```bash
 databricks bundle run evaluate_agent -t demo --profile YOUR_PROFILE
 ```
 
-The run contains the benchmark, generated answers, judge explanations, detailed
-traces, and a report under **Artifacts → evaluation_report**. Compare like with
-like: use the same question set, source documents, and judge model when comparing
-agent or pipeline changes. See [evaluation](EVALUATION.md).
+The run contains generated answers, assessments, judge explanations and detailed
+traces. The managed dataset, registered scorer versions and evaluation runs are
+the working record; no standalone report file is required. Compare like with
+like: use the same dataset revision, scorer versions, source documents and judge
+model when comparing agent or pipeline changes. See [evaluation](EVALUATION.md).
+
+Use **Run evaluation → Use code** to work with the supplied notebook and its
+custom scoring functions. **Select traces** can rescore recorded answers that
+have the required reference expectations. Registering a scorer does not enable
+continuous production monitoring in this reference.
 
 ## Inspect agent activity
 
@@ -107,6 +118,6 @@ guarantee for larger document collections.
 The search endpoint belongs to the bundle. Its index is created by the ingestion
 job after the source table exists. Before destroying the bundle, remove that
 dedicated index if needed; otherwise it can keep the endpoint or schema in use.
-Export any PDFs, evaluation artifacts, and traces you want to keep. Never delete
+Export any PDFs, managed evaluation questions, runs and traces you want to keep. Never delete
 an entire shared catalog to clean up this solution. Review the target/profile
 before using the quickstart's destructive cleanup command.

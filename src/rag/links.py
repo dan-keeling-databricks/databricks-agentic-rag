@@ -38,7 +38,11 @@ def architecture_links(host, settings):
     if settings.evaluation_job_id:
         links["Benchmark evaluation job"] = f"{host}/jobs/{quote(settings.evaluation_job_id, safe='')}"
     if settings.mlflow_experiment_id:
-        links["MLflow traces and evaluation results"] = f"{host}/ml/experiments/{quote(settings.mlflow_experiment_id, safe='')}"
+        experiment = f"{host}/ml/experiments/{quote(settings.mlflow_experiment_id, safe='')}"
+        links["MLflow traces and evaluation results"] = experiment
+        links["MLflow evaluation dataset"] = f"{experiment}/datasets"
+        links["MLflow registered scorers"] = f"{experiment}/scorers"
+        links["MLflow evaluation runs"] = f"{experiment}/evaluation-runs"
     if settings.use_ai_gateway and len(settings.agent_endpoint.split(".")) == 3:
         model_catalog, model_schema, _ = settings.agent_endpoint.split(".")
         # Model services are visible inside their UC schema. Do not guess a
