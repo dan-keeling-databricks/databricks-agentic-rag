@@ -66,6 +66,10 @@ claiming an improvement.
 
 ## What was evaluated
 
+This run predates the SQL pipeline conversion. The [validation record](VALIDATION.md#sql-document-pipeline)
+records the SQL execution and output-equivalence checks. These original benchmark
+results and their implementation fingerprint are retained unchanged.
+
 - Corpus: all **29 PDFs**, pinned to source revision
   `1a8743c8fe783b3ac42ab37aa18118387fb3c996`, producing **448 search passages**.
 - Questions: 20, with reference evidence drawn from the compact LLM guide,

@@ -23,6 +23,10 @@ variables:
     default: system.ai.llama_v3_3_70b_instruct
   embedding_endpoint:
     default: databricks-gte-large-en
+  extraction_schema:
+    description: JSON schema for document metadata extracted by ai_extract.
+    default: >-
+      {"title":{"type":"string","description":"The document title."},"summary":{"type":"string","description":"A brief factual summary of the document in two sentences."},"topics":{"type":"array","items":{"type":"string"},"description":"Up to five short subject labels supported by the document."}}
   pipeline_channel:
     description: Requires a runtime supporting ai_prep_search; verify in your workspace.
     default: PREVIEW

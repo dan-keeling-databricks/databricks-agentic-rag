@@ -41,6 +41,7 @@ by the deployment script. The script preserves existing advanced overrides.
 | `agent_model` | Underlying foundation model behind the `agent_model` Unity Gateway service. | `system.ai.gpt-oss-120b` |
 | `judge_model` | Underlying model behind the independent `judge_model` service. | `system.ai.llama_v3_3_70b_instruct` |
 | `embedding_endpoint` | Model-serving endpoint used by AI Search to represent text numerically. | `databricks-gte-large-en` |
+| `extraction_schema` | JSON schema passed to `ai_extract` for document metadata. | Title, summary, and topics; see `databricks.yml` |
 | `pipeline_channel` | Pipeline release channel. The selected environment must support every document AI function. | `PREVIEW` |
 
 Use actual model names available in your workspace. Model availability and access
@@ -117,10 +118,11 @@ and app access; keep the app behind that managed access layer.
 
 ## PDF preparation settings
 
-The pipeline reads `rag.source_volume` from its Spark configuration. The bundle
-sets it to the deployed landing volume. It also accepts
-`rag.extraction_schema` to change the fields requested from `ai_extract`; see
-[PDF pipeline](PIPELINE.md) for its format and outputs.
+The SQL pipeline reads the named parameters `:source_volume` and
+`:extraction_schema`. The bundle binds the landing volume and the JSON metadata
+schema declared by its `extraction_schema` variable. These appear under
+**Parameters** in the pipeline settings. See [PDF pipeline](PIPELINE.md) for the
+format and outputs.
 
 Changing extraction logic or chunk preparation can change stored content and
 search results. Follow the reprocessing steps, refresh the index, and rerun the

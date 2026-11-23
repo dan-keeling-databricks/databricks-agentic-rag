@@ -15,7 +15,7 @@ from pathlib import Path
 
 IMPLEMENTATION_FILES = (
     "src/rag/agent.py", "src/rag/retrieval.py", "src/rag/config.py",
-    "src/pipeline/documents.py",
+    "src/pipeline/documents.sql",
 )
 
 

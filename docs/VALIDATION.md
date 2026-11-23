@@ -24,7 +24,7 @@ failures and limitations.
 | Check | Result |
 | --- | --- |
 | Strict bundle validation | Passed with explicit target and profile. |
-| Local regression suite | 75 passed; one third-party SQLAlchemy deprecation warning. |
+| Local regression suite, including live SQL checks | 78 passed; one third-party SQLAlchemy deprecation warning. |
 | Download integrity | Git blob hashes verified; manifest and NOTICE preserved. |
 | Real Gateway model calls | Answer and judge services both passed. |
 | PDFs in saved ingestion/parsing/preparation stages | 29 in each stage. |
@@ -155,10 +155,10 @@ MLflow. Parent-child lines show nesting; operation numbers follow start time.
 The local Streamlit integration check also loaded a real persisted trace and
 selected its planning and final steps. Backend checks verified that model and
 retrieval spans inherit their enclosing graph node. Loading historical activity
-made no answer-model calls. The agent and pipeline implementation fingerprint
-still matches the original baseline; this extension changes inspection only.
+made no answer-model calls. Activity inspection reads the persisted trace data and compiled graph without
+changing answer generation.
 
-The complete suite has 75 passing tests. Coverage includes the compiled topology,
+Trace-viewer coverage includes the compiled topology,
 loop branch, Unicode/quoted graph labels, JSON-encoded UC values,
 experiment scoping, parent-child relationships, step selection, empty history,
 filtering, and successful loads followed by failed refreshes. Failed refreshes
@@ -168,3 +168,37 @@ explicitly. Source files compile with the Apps Python 3.11 environment.
 Shared visibility includes other users' saved questions and document passages.
 The app explains this, and the operations and hardening guides describe how to
 restrict or redact it before introducing sensitive data.
+
+
+## SQL document pipeline
+
+The document pipeline is defined in [documents.sql](../src/pipeline/documents.sql)
+as four streaming tables and one materialized view. The bundle points to the SQL
+file and binds the `source_volume` and `extraction_schema` named parameters.
+
+Validation completed on 23 November 2026:
+
+- All **78 tests passed**, including three live SQL contract tests. The status
+  checks exercised 11 synthetic examples covering empty/oversized PDFs, missing
+  parsing/preparation results, AI errors, missing extraction, and empty error
+  representations.
+- SQL projections of all 448 saved search rows and all 29 processing-status rows
+  matched the existing data in both directions, with no extra or missing rows.
+- An isolated serverless SQL pipeline processed a real sample PDF through
+  `ai_parse_document`, `ai_prep_search`, and `ai_extract`: one ready document,
+  four unique chunks, and zero invalid page ranges. Its temporary resources
+  were removed after testing.
+- [Ingestion job run 463023579284984](https://adb-7405617409436848.8.azuredatabricks.net/jobs/1110220157229078/runs/463023579284984)
+  completed successfully against the existing pipeline. Update
+  `27f72588-5264-4405-a767-dd8f0e688281` completed as a normal incremental update;
+  no full refresh or checkpoint reset was used.
+- All five dataset schemas and row counts were preserved. The 29 document IDs,
+  448 chunk IDs, and the fingerprint of the complete chunk contents were
+  unchanged. Change Data Feed remains enabled.
+- The AI Search synchronization completed with **448 indexed rows** and
+  `ONLINE_NO_PENDING_UPDATE` status.
+
+The earlier 20-question answer-quality baseline remains a historical run with
+its original source fingerprint. This conversion was checked for SQL execution,
+output equivalence, and successful index synchronization; it did not rerun the
+20-question AI judges. Future evaluations fingerprint the SQL pipeline source.

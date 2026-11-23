@@ -83,6 +83,7 @@ see the quickstart before deploying.
 | --- | --- |
 | [Quickstart](docs/QUICKSTART.md) | How to deploy, load documents, ask questions, and run evaluation. |
 | [PDF pipeline](docs/PIPELINE.md) | The saved stages, search-table fields, provenance, and processing errors. |
+| [SQL pipeline code](src/pipeline/documents.sql) | The Auto Loader, document AI, chunking, and processing-status definitions. |
 | [Architecture](docs/ARCHITECTURE.md) | What each component does and how the pieces fit together. |
 | [Configuration](docs/CONFIGURATION.md) | Settings for your workspace, models, and agent behavior. |
 | [Evaluation](docs/EVALUATION.md) | How the benchmark, AI judges, and comparison runs work. |

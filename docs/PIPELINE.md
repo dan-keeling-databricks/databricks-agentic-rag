@@ -33,12 +33,18 @@ charges. The status view can refresh without repeating those AI operations.
 
 ## Configuration
 
-The bundle supplies these pipeline settings:
+The implementation is [documents.sql](../src/pipeline/documents.sql). The bundle
+supplies these SQL pipeline parameters:
 
 | Setting | Purpose |
 | --- | --- |
-| `rag.source_volume` | Full `/Volumes/<catalog>/<schema>/<volume>[/folder]` path holding the PDFs. |
-| `rag.extraction_schema` | JSON schema for `ai_extract`. Defaults to `title` (string), `summary` (string), and `topics` (array of strings). |
+| `source_volume` | Full `/Volumes/<catalog>/<schema>/<volume>[/folder]` path holding the PDFs. |
+| `extraction_schema` | JSON schema for `ai_extract`. Defaults to `title` (string), `summary` (string), and `topics` (array of strings). |
+
+Parameters use SQL's named binding syntax (`:source_volume` and
+`:extraction_schema`), so paths and JSON values are passed as data. The metadata
+schema default is the `extraction_schema` bundle variable in `databricks.yml`;
+override it through your local bundle variable settings.
 
 Table names are relative to the pipeline's configured catalog and schema. There
 is no workspace address or customer-specific catalog name in the pipeline code.
@@ -139,3 +145,22 @@ the customer's operational hardening work.
 Official references: [AI document parsing](https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_parse_document),
 [AI search preparation](https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_prep_search),
 [Auto Loader options](https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/options).
+
+## Test the SQL transformations
+
+The optional live checks compare the SQL chunk and status projections with the
+saved tables, then exercise processing failures using synthetic SQL rows. They
+read data and do not call the AI functions. Install `requirements-dev.txt`, then
+set the deployment to check:
+
+```bash
+export SQL_TEST_PROFILE=YOUR_PROFILE
+export SQL_TEST_WAREHOUSE_ID=YOUR_WAREHOUSE_ID
+export SQL_TEST_CATALOG=YOUR_CATALOG
+export SQL_TEST_SCHEMA=agentic_rag
+python -m pytest -q tests/test_pipeline_sql.py
+```
+
+Without these settings, the ordinary local test suite skips the live SQL checks.
+Use an actual pipeline update with representative new PDFs to test Auto Loader
+and all three document AI functions end to end.

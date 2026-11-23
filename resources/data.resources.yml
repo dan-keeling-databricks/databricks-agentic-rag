@@ -60,6 +60,7 @@ resources:
       channel: ${var.pipeline_channel}
       libraries:
         - file:
-            path: ../src/pipeline/documents.py
-      configuration:
-        rag.source_volume: /Volumes/${resources.volumes.source_documents.catalog_name}/${resources.volumes.source_documents.schema_name}/${resources.volumes.source_documents.name}
+            path: ../src/pipeline/documents.sql
+      parameters:
+        source_volume: /Volumes/${resources.volumes.source_documents.catalog_name}/${resources.volumes.source_documents.schema_name}/${resources.volumes.source_documents.name}
+        extraction_schema: ${var.extraction_schema}
