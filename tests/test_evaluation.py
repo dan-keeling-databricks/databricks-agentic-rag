@@ -32,6 +32,23 @@ def test_benchmark_covers_supported_behaviors_and_has_page_evidence():
             assert item["page"] >= 1 and item["quote"].strip()
 
 
+def test_agent_inputs_have_no_document_routing_hints_or_reference_answers():
+    rows = load_benchmark(BENCHMARK)
+    filenames = {item["filename"].casefold() for row in rows for item in row["expectations"]["evidence"]}
+    source_titles = {
+        "a compact guide to large language models", "all roads lead to the lakehouse",
+        "making your digital twin come to life",
+    }
+    for row, data in zip(rows, evaluation_data(rows)):
+        assert set(data["inputs"]) == {"query", "history", "question_id"}
+        question_and_history = json.dumps(row["inputs"], ensure_ascii=False).casefold()
+        assert not any(hint in question_and_history for hint in filenames | source_titles)
+        assert not any(hint in question_and_history for hint in (".pdf", "the ebook", "the guide", "same guide"))
+        assert "expected_response" not in data["inputs"]
+        assert "expected_facts" not in data["inputs"]
+        assert "evidence" not in data["inputs"]
+
+
 def test_reference_cannot_change_document_or_extend_retrieved_pages():
     retrieved = {"chunk_id": "a", "filename": "first.pdf", "page_start": 2, "page_end": 3}
     outputs = {"retrieved_context": [retrieved], "sources": [{**retrieved, "filename": "second.pdf"}]}

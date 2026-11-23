@@ -1,7 +1,8 @@
 # Validation record
 
 The end-to-end PDF pipeline, search, app, follow-up questions, persisted traces,
-and real 20-question AI-judged benchmark have been verified. This file records
+and an earlier 20-question AI-judged benchmark have been verified. The current
+benchmark removes source-title hints and needs a fresh scored run. This file records
 observed results. Read [the measured baseline](BASELINE.md) for answer-quality
 failures and limitations.
 
@@ -49,7 +50,7 @@ Verified trace examples:
 - [Session follow-up](https://adb-7405617409436848.8.azuredatabricks.net/ml/experiments/175182949588215/traces/c600f0de4fd18126ddce0de18e5d6f57).
 - [App service identity](https://adb-7405617409436848.8.azuredatabricks.net/ml/experiments/175182949588215/traces/2356c3ccbbca03a5e3358a13c7714d21).
 
-## Full benchmark evidence
+## Historical benchmark evidence
 
 [Run b35c5eb751cb423b8904dbd74f1cbc4a](https://adb-7405617409436848.8.azuredatabricks.net/ml/experiments/175182949588215/runs/b35c5eb751cb423b8904dbd74f1cbc4a)
 completed all 20 questions. Correctness was 80%, groundedness 85%, citation
@@ -202,3 +203,22 @@ The earlier 20-question answer-quality baseline remains a historical run with
 its original source fingerprint. This conversion was checked for SQL execution,
 output equivalence, and successful index synchronization; it did not rerun the
 20-question AI judges. Future evaluations fingerprint the SQL pipeline source.
+
+
+## Current benchmark inputs
+
+The current 20-question set uses standalone questions and follow-up histories
+without source-publication titles or filenames. Products and customer names
+identify the subject matter; reference document/page information is confined to
+the scoring expectations. The question IDs, categories, answerability labels,
+source revision, and evidence entries are preserved. Reference wording for open
+business-use and synthesis questions accepts substantive source-supported answers
+without requiring publication attribution.
+
+Benchmark SHA-256: `c4c9644551f4027071bd975e940e04a6f0527434e59dacff49bc7d8a99f5b591`.
+
+The evaluation integrity checks verify both the absence of document-routing cues
+in the current inputs and the separation of reference data from agent inputs.
+The earlier measured scores above are retained as historical evidence. They are
+not a baseline for this revised question set; no new answer-quality score is
+claimed until a full evaluation completes.

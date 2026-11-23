@@ -1,4 +1,9 @@
-# What the first benchmark found
+# Historical benchmark results
+
+**These scores belong to an earlier question set that included source-document
+titles.** The current benchmark removes those cues from questions and follow-up
+histories. A full evaluation of the current question set has not yet been run;
+the 80% correctness figure below must not be presented as its result.
 
 The assistant completed **20 of 20 questions** against the deployed PDFs, search
 index, and models. The independent AI judge rated **16 of 20 answers correct

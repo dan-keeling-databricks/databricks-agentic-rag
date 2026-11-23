@@ -22,6 +22,22 @@ page, including its cover. Each answerable question includes a reference answer,
 required facts, and evidence pages. The follow-up tests supply fixed chat history;
 they test context handling rather than accumulating errors across a whole chat.
 
+The current questions are standalone requests: they do not name source
+publications, files, chapters, or evidence pages. The fixed follow-up histories
+also omit those cues. Product and organization names remain where they identify
+the subject of a question, such as Auto Loader or Rolls-Royce.
+
+Document filenames, page numbers, and supporting quotes live in `expectations`
+for scoring. The agent receives only the question and conversation history; the
+reference answers and evidence annotations are not passed to it. Search must
+locate suitable evidence across the shared corpus.
+
+The benchmark is versioned by its SHA-256 hash in every MLflow run. The
+[historical baseline](BASELINE.md) used an earlier set with source-title cues.
+Its scores do not measure the current questions. Run a fresh evaluation to
+establish a baseline, and compare results only between runs with matching
+benchmark hashes and judge settings.
+
 These are **author-derived reference answers awaiting customer review**. They are
 not customer-approved ground truth. The PDFs describe products at their original
 publication dates; the benchmark tests faithful reading of those documents, not
