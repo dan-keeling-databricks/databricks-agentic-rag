@@ -6,8 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from evaluation.checks import citation_validity, evidence_page_recall, load_benchmark
-from evaluation.runner import AIJudge, write_report
+from evaluation.checks import (
+    IMPLEMENTATION_FILES, citation_validity, evidence_page_recall,
+    implementation_fingerprint, load_benchmark,
+)
+from evaluation.runner import AIJudge, model_service_metadata, write_report
 from scripts.smoke_agent import check_trace, trace_browser_url
 
 
@@ -97,3 +100,32 @@ def test_trace_verification_requires_model_retrieval_graph_and_actual_request():
 def test_browser_link_strips_only_qualified_uc_prefix():
     assert trace_browser_url("https://workspace/", "123", "trace:/catalog.schema/abc") == "https://workspace/ml/experiments/123/traces/abc"
     assert trace_browser_url("https://workspace", "123", "tr-abc").endswith("/traces/tr-abc")
+
+
+def test_code_fingerprint_changes_when_evaluated_source_changes(tmp_path):
+    for relative_path in IMPLEMENTATION_FILES:
+        path = tmp_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("original source\n")
+    first = implementation_fingerprint(tmp_path)
+    assert first == implementation_fingerprint(tmp_path)
+    (tmp_path / IMPLEMENTATION_FILES[0]).write_text("changed source\n")
+    assert first["implementation_sha256"] != implementation_fingerprint(tmp_path)["implementation_sha256"]
+
+
+def test_model_service_snapshot_records_destinations_and_lookup_failures():
+    calls = []
+
+    def get_model_service(name):
+        calls.append(name)
+        if name.endswith("judge"):
+            raise PermissionError("Private diagnostic not needed in metadata")
+        routing = SimpleNamespace(as_dict=lambda: {"destinations": [{"pay_per_token_config": {"model": "system.ai.agent"}}]})
+        return SimpleNamespace(name=name, etag="revision1", config=SimpleNamespace(routing=routing))
+
+    settings = SimpleNamespace(use_ai_gateway=True, agent_endpoint="catalog.schema.agent", judge_endpoint="catalog.schema.judge")
+    result = model_service_metadata(SimpleNamespace(ai_gateway=SimpleNamespace(get_model_service=get_model_service)), settings)
+    assert calls == ["model-services/catalog.schema.agent", "model-services/catalog.schema.judge"]
+    assert result["agent"]["status"] == "resolved"
+    assert result["agent"]["routing"]["destinations"][0]["pay_per_token_config"]["model"] == "system.ai.agent"
+    assert result["judge"] == {"endpoint": "catalog.schema.judge", "status": "unavailable", "error_type": "PermissionError"}

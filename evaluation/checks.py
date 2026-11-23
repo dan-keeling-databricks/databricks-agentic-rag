@@ -8,8 +8,26 @@ claim; the groundedness judge assesses that separately.
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 from pathlib import Path
+
+
+IMPLEMENTATION_FILES = (
+    "src/rag/agent.py", "src/rag/retrieval.py", "src/rag/config.py",
+    "src/pipeline/documents.py",
+)
+
+
+def implementation_fingerprint(root: str | Path) -> dict:
+    """Identify the evaluated source even when Jobs has no Git checkout metadata."""
+    digest = hashlib.sha256()
+    files = {}
+    for relative_path in IMPLEMENTATION_FILES:
+        content = (Path(root) / relative_path).read_bytes()
+        digest.update(relative_path.encode("utf-8") + b"\0" + content + b"\0")
+        files[relative_path] = hashlib.sha256(content).hexdigest()
+    return {"implementation_sha256": digest.hexdigest(), "file_sha256": files}
 
 
 def load_benchmark(path: str | Path) -> list[dict]:

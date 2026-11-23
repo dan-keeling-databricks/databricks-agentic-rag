@@ -80,12 +80,28 @@ revision, agent and judge model routes, search limit, and retrieval count. Each
 question has the produced answer, source references, scores, and judge rationales.
 Agent traces expose searches and model interactions.
 
-The job also writes and logs three files as MLflow artifacts under
+Every run also records `implementation_sha256`: a fingerprint of the relative
+paths and exact file contents for the agent, retrieval, configuration, and PDF
+pipeline code. This identifies the evaluated implementation even when a job runs
+uploaded source files without Git history. Context-size and chat-history limits,
+and whether Unity AI Gateway was used, are recorded as run parameters too.
+
+A gateway service name is an alias: its backing model can change while its name
+stays the same. The job therefore tries to read the agent and judge services'
+configured model destinations before evaluation and saves that routing snapshot.
+It does not fetch credentials. If the SDK or permissions prevent this lookup,
+the artifact explicitly says `unavailable`; the evaluation can still run, but the
+model identity record is incomplete. A routing snapshot records configuration at
+that time, not a guarantee that the service will never change during a run.
+
+The job also writes and logs these files as MLflow artifacts under
 `evaluation_report/`:
 
 - `BASELINE.md`: a short readable summary with aggregate results and failures.
 - `summary.json`: run link, completion counts, benchmark hash, and aggregate metrics.
 - `results.json`: each question, reference answer, agent output, and assessment.
+- `implementation.json`: the implementation fingerprint and individual source-file hashes.
+- `model_services.json`: the configured agent/judge model destinations, or an explicit lookup-unavailable status.
 
 By default these files are also written to `reports/evaluation/` in the execution
 environment. Use `--output-dir /Volumes/<catalog>/<schema>/<volume>/evaluations/<run>`

@@ -15,7 +15,32 @@ import os
 from pathlib import Path
 import threading
 
-from evaluation.checks import citation_validity, evidence_page_recall, load_benchmark, numeric_metrics
+from evaluation.checks import (
+    citation_validity, evidence_page_recall, implementation_fingerprint,
+    load_benchmark, numeric_metrics,
+)
+
+
+def model_service_metadata(workspace, settings) -> dict:
+    """Snapshot model routing, never provider credentials or secret values."""
+    metadata = {"captured_at": datetime.now(timezone.utc).isoformat()}
+    for role, endpoint in [("agent", settings.agent_endpoint), ("judge", settings.judge_endpoint)]:
+        item = {"endpoint": endpoint}
+        metadata[role] = item
+        if not settings.use_ai_gateway:
+            item["status"] = "not_using_unity_ai_gateway"
+            continue
+        try:
+            name = endpoint if endpoint.startswith("model-services/") else f"model-services/{endpoint}"
+            service = workspace.ai_gateway.get_model_service(name=name)
+            # This allowlist records model identities/routing only. Provider
+            # service authentication and connection settings are never fetched.
+            item.update({"status": "resolved", "service_name": service.name,
+                         "etag": service.etag,
+                         "routing": service.config.routing.as_dict() if service.config and service.config.routing else {}})
+        except Exception as error:
+            item.update({"status": "unavailable", "error_type": type(error).__name__})
+    return metadata
 
 
 class AIJudge:
@@ -208,15 +233,23 @@ def main(argv=None) -> None:
         return result
 
     benchmark_hash = hashlib.sha256(Path(args.benchmark).read_bytes()).hexdigest()
+    implementation = implementation_fingerprint(Path(__file__).resolve().parents[1])
+    model_services = model_service_metadata(workspace, settings)
     with mlflow.start_run(run_name=args.run_name):
         mlflow.log_params({"benchmark_sha256": benchmark_hash, "question_count": len(data),
                            "agent_endpoint": settings.agent_endpoint, "judge_endpoint": settings.judge_endpoint,
                            "vector_search_index": settings.vector_search_index, "max_searches": settings.max_searches,
                            "retrieval_k": settings.retrieval_k,
+                           "max_context_characters": settings.max_context_characters,
+                           "max_history_messages": settings.max_history_messages,
+                           "use_ai_gateway": settings.use_ai_gateway,
+                           "implementation_sha256": implementation["implementation_sha256"],
                            "corpus_revision": records[0]["expectations"]["corpus_revision"]})
         mlflow.set_tags({"reference_answers": "author_derived_pending_customer_review",
                          "benchmark_scope": "smoke_test" if args.limit else "full_20_questions"})
         mlflow.log_artifact(args.benchmark, "benchmark")
+        mlflow.log_dict(implementation, "evaluation_report/implementation.json")
+        mlflow.log_dict(model_services, "evaluation_report/model_services.json")
         results = mlflow.genai.evaluate(data=data, predict_fn=predict_fn,
                                        scorers=make_scorers(judge, scores, lock))
         output = Path(args.output_dir)
@@ -229,9 +262,12 @@ def main(argv=None) -> None:
                    "run_url": f"{host}/ml/experiments/{settings.mlflow_experiment_id}/runs/{results.run_id}",
                    "question_count": len(data), "completed_questions": len(predictions),
                    "missing_assessments": missing, "benchmark_sha256": benchmark_hash,
+                   "implementation_sha256": implementation["implementation_sha256"],
                    "metrics": numeric_metrics(results.metrics)}
         (output / "summary.json").write_text(json.dumps(summary, indent=2, allow_nan=False))
         (output / "results.json").write_text(json.dumps(rows, indent=2, ensure_ascii=False, default=str))
+        (output / "implementation.json").write_text(json.dumps(implementation, indent=2))
+        (output / "model_services.json").write_text(json.dumps(model_services, indent=2))
         write_report(output / "BASELINE.md", summary, rows)
         mlflow.log_artifacts(str(output), "evaluation_report")
         print(json.dumps(summary, indent=2))

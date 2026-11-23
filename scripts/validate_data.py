@@ -6,11 +6,13 @@ import re
 import time
 
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.sql import Disposition, Format
 
 
 def statement(workspace, warehouse_id, sql):
     result = workspace.statement_execution.execute_statement(
         warehouse_id=warehouse_id, statement=sql, wait_timeout="30s",
+        format=Format.JSON_ARRAY, disposition=Disposition.INLINE,
     )
     deadline = time.monotonic() + 90
     while result.status.state.value in {"PENDING", "RUNNING"} and time.monotonic() < deadline:
