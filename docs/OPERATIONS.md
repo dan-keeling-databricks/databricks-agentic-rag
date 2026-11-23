@@ -43,6 +43,21 @@ traces, and a report under **Artifacts → evaluation_report**. Compare like wit
 like: use the same question set, source documents, and judge model when comparing
 agent or pipeline changes. See [evaluation](EVALUATION.md).
 
+## Inspect agent activity
+
+The **Agent activity** tab shows the graph built by the LangGraph agent and
+recent saved answer traces from this deployment's MLflow experiment. Select a
+run to review its timestamp and steps: planned/refined search queries, retrieved
+passages, model inputs and outputs, evidence assessments, and the final response.
+These are recorded operations and explicit structured decisions. The display
+does not provide hidden internal model reasoning.
+
+Refresh the recent-runs list to pick up newer traces. Allow time for a completed
+answer's trace to reach Unity Catalog. Open the MLflow trace link for the full
+record. If the list is empty or a trace cannot load, check the experiment,
+trace-read permissions, and configured SQL warehouse; an empty list is not proof
+that no one has asked a question.
+
 ## Permissions
 
 Deployment uses your explicitly selected profile. The app has its own Databricks
@@ -54,6 +69,11 @@ gain access to the underlying resources just because they can use chat.
 Grant people permission to use the app through its Databricks permissions page.
 The example does not grant app access to everyone in the workspace. Everyone
 you authorize sees the same searchable document collection.
+
+Every authorized app user can also browse the shared historical answer traces
+in **Agent activity** through the app's service identity. This includes saved
+questions, document passages, and model inputs and outputs from other runs.
+The tab does not filter history to the current user's chat session.
 
 Questions, chat context, retrieved passages, model calls, and answers may appear
 in traces. Decide who may inspect those traces and how long to keep them before

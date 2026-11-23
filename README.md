@@ -39,6 +39,10 @@ find useful source material first, then ask the model to answer using it.
 
 - A **Chat** tab with source passages, page references, follow-up questions, and
   links to traces when available.
+- An **Agent activity** tab with a diagram of the actual LangGraph steps and a
+  history of saved runs. Pick a run to inspect its timestamp, searches, model
+  call inputs and outputs, and recorded decisions; refresh the list to find newer
+  runs, or open the full trace in MLflow.
 - An **Architecture** tab explaining the deployed flow, with links to its volume,
   tables, pipeline, search index, jobs, and MLflow experiment.
 - A portable **Databricks bundle**: a set of configuration files that creates the
@@ -97,8 +101,13 @@ scores are useful measurements, not a guarantee that an answer is correct.
 
 ## Scope
 
-All authorized app users search the same shared document collection. Chat history
-lasts for the current session. Ingestion is on demand and handles new PDFs;
+All authorized app users search the same shared document collection and can
+inspect its shared historical agent traces in **Agent activity**, including
+questions, retrieved passages, and model inputs and outputs from other runs.
+The tab shows saved steps and explicit decisions, such as whether more evidence
+was needed. Interactive chat history lasts for the current session; saved MLflow
+traces remain available according to the deployment's retention policy.
+Ingestion is on demand and handles new PDFs;
 replacement, deletion, persistent conversations, and per-document access rules
 are described as follow-on work in the hardening guide.
 

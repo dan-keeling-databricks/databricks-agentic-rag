@@ -1,6 +1,6 @@
 # Databricks agentic document RAG — specification
 
-Status: specification agreed; implemented and deployed. Actual checks and
+Status: core specification and Agent activity extension implemented and deployed. Actual checks and
 measured quality limitations are recorded in [VALIDATION.md](VALIDATION.md) and
 [BASELINE.md](BASELINE.md).
 Created: 2026-11-23.
@@ -40,7 +40,8 @@ PDFs in UC volume -> Auto Loader -> Lakeflow Spark Declarative Pipeline ->
 persisted document parsing and metadata extraction -> search-ready chunks ->
 Delta Sync AI Search index -> LangGraph retrieval and answer generation in a
 Databricks App. MLflow captures agent traces and benchmark evaluation runs.
-The app includes chat and architecture tabs.
+The app includes Chat, Agent activity, and Architecture tabs. Section 8 records
+the historical activity extension.
 
 Implemented engineering conventions: configuration-driven deployment, a small
 repository, reproducible resource definitions, and separate customer-neutral
@@ -201,6 +202,32 @@ Create private GitHub repository `dan-keeling-databricks/databricks-agentic-rag`
 and push the local project. User explicitly requested a delivery goal and an agent
 execution team; goal created and pipeline, app, and evaluation agents assigned.
 
+### 8. Agent activity and historical traces — AGREED EXTENSION
+
+- Add a third Streamlit tab named **Agent activity**.
+- Show the actual LangGraph topology from the running agent, including its
+  plan, search, assess, and respond nodes and the repeated-search branch.
+- Let users browse recent saved answer traces from the configured MLflow
+  experiment, refresh that list, and select a past trace for step-by-step review.
+- Show trace timestamps, searches, retrieved evidence, model-call inputs and
+  outputs, and recorded decisions such as evidence sufficiency and query
+  refinement. Explain these saved operations without presenting hidden internal
+  chain-of-thought as an inspectable artifact.
+- Provide a link to the selected trace in MLflow.
+- Historical trace visibility is shared across all authorized app users, using
+  the app's service identity. This includes other runs' questions and document
+  excerpts; it is separate from session-only interactive chat history.
+- Handle empty, loading, and error states clearly, including delayed trace
+  availability. Keep this within the reference implementation's scope.
+- Document the shared visibility and the access/retention changes recommended
+  before introducing sensitive customer data.
+
+Implemented and live-verified under the app service identity. The browser loaded
+30 recent requests, rendered the compiled graph and recorded span tree, and
+displayed a selected planning step's saved query. The local suite has 75 passing
+tests, including trace scope, decoding, graph mapping, selection, and error states.
+See [VALIDATION.md](VALIDATION.md) for the observed checks.
+
 ## Technical verification requirements
 
 - Verify current official APIs and actual Azure workspace support for all three
@@ -243,6 +270,7 @@ execution team; goal created and pipeline, app, and evaluation agents assigned.
 | 2026-11-23 | 6 | Prepare locally then push to dan-keeling-databricks/databricks-agentic-rag, initially private. | Agreed |
 | 2026-11-23 | 7 | Plain-language README, deployment quickstart, full handover documentation and actual end-to-end validation. | Agreed |
 | 2026-11-23 | Execution | Create an explicit delivery goal and agent execution team before proceeding. | Done |
+| 2026-11-23 | 8 | Add Agent activity: actual graph, recent shared historical traces, step-by-step saved operations, refresh, and MLflow links. | Implemented and live-verified |
 
 ## Implementation and deployment status
 

@@ -135,6 +135,19 @@ Check the cited source passages and page references. The page numbers are
 physical PDF pages, which can differ from page numbers printed in the document.
 The architecture tab links to the solution's actual deployed components.
 
+Open **Agent activity** to see the agent's actual LangGraph diagram: plan a
+search, search the documents, assess the evidence, and respond, with a return to
+search when more evidence is needed. Select a saved run to inspect its timestamp
+and recorded steps, including search queries, retrieved passages, model call
+inputs and outputs, and saved decisions. Refresh the recent-runs list after a
+new question; trace ingestion can take a short time. Use the MLflow link to open
+the full saved trace.
+
+Activity history is shared: every authorized app user can inspect these traces
+from the configured experiment, including other users' questions and document
+excerpts. The chat itself remains session-based. Review this access model before
+using sensitive questions or PDFs.
+
 ## 5. Run the benchmark
 
 ```bash

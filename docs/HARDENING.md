@@ -27,6 +27,12 @@ unexpected content, conflicting evidence, or attempts to disclose unrelated
 information. Restrict any future tools to their intended scope.
 
 Traces can contain questions, document excerpts, model inputs, and answers.
+The **Agent activity** tab deliberately exposes this shared historical record to
+all authorized app users. Before introducing sensitive data, decide whether
+activity should be restricted to operators, filtered to a user's own authorized
+runs, or redacted. Enforce that policy in the backend trace queries and service
+permissions as well as the interface. The app's current shared trace access is
+separate from the temporary chat session history.
 Define retention, access, deletion, and redaction rules before loading sensitive
 content. Review regional data-processing requirements and the terms of the
 models and built-in AI functions you use.

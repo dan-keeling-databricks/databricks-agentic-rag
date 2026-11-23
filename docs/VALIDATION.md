@@ -24,7 +24,7 @@ failures and limitations.
 | Check | Result |
 | --- | --- |
 | Strict bundle validation | Passed with explicit target and profile. |
-| Local regression suite | 59 passed; one third-party SQLAlchemy deprecation warning. |
+| Local regression suite | 75 passed; one third-party SQLAlchemy deprecation warning. |
 | Download integrity | Git blob hashes verified; manifest and NOTICE preserved. |
 | Real Gateway model calls | Answer and judge services both passed. |
 | PDFs in saved ingestion/parsing/preparation stages | 29 in each stage. |
@@ -133,3 +133,38 @@ customer review. Missing diagram labels, wrong-entity answers, conservative
 abstention, and judge inconsistencies were observed. Page recall and valid
 citations alone do not prove useful or correct answers. These limitations are
 explained with individual examples in [BASELINE.md](BASELINE.md).
+
+
+## Agent activity extension
+
+The third app tab was added and verified on 23 November 2026. It reads topology
+from the actual compiled LangGraph and lets authorized app users browse shared
+past answer traces from this deployment's experiment. The selector supports
+24-hour, 7-day, and 30-day windows. Each refresh inspects at most 100 recent trace
+metadata records and displays up to 30 matching agent requests. This bounded
+recent-history view is not an exhaustive archive browser.
+
+A real browser session against the deployed app loaded 30 previous requests
+through the app's service identity, displayed the compiled graph with per-node
+visit counts and a recorded 20-operation trace, and showed the saved standalone
+search query when the planning step was selected. The trace details include
+model calls, retrieval results, evidence decisions, router outputs, final output,
+timestamps, durations, and errors where recorded. A link opens the full trace in
+MLflow. Parent-child lines show nesting; operation numbers follow start time.
+
+The local Streamlit integration check also loaded a real persisted trace and
+selected its planning and final steps. Backend checks verified that model and
+retrieval spans inherit their enclosing graph node. Loading historical activity
+made no answer-model calls. The agent and pipeline implementation fingerprint
+still matches the original baseline; this extension changes inspection only.
+
+The complete suite has 75 passing tests. Coverage includes the compiled topology,
+loop branch, Unicode/quoted graph labels, JSON-encoded UC values,
+experiment scoping, parent-child relationships, step selection, empty history,
+filtering, and successful loads followed by failed refreshes. Failed refreshes
+clear stale history and preserve the graph. The applied history window is shown
+explicitly. Source files compile with the Apps Python 3.11 environment.
+
+Shared visibility includes other users' saved questions and document passages.
+The app explains this, and the operations and hardening guides describe how to
+restrict or redact it before introducing sensitive data.

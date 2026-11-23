@@ -5,6 +5,7 @@ import os
 
 import streamlit as st
 
+from src.rag.activity import render_activity
 from src.rag.agent import get_agent
 from src.rag.config import Settings
 from src.rag.links import architecture_links, trace_url
@@ -20,7 +21,7 @@ except (ValueError, TypeError) as error:
     st.info("Follow the deployment quickstart in the repository, then restart the app.")
     st.stop()
 
-chat_tab, architecture_tab = st.tabs(["Chat", "Architecture"])
+chat_tab, activity_tab, architecture_tab = st.tabs(["Chat", "Agent activity", "Architecture"])
 
 
 def show_answer(result):
@@ -80,6 +81,10 @@ with chat_tab:
                 logging.exception("Document question failed")
                 st.error("The request could not be completed. Check that ingestion and index synchronization have finished and that the app can access the model, index, and MLflow experiment.")
                 st.info("The Architecture tab links to the deployed components. Check the app logs for technical details, then retry.")
+
+with activity_tab:
+    render_activity(settings)
+
 
 with architecture_tab:
     st.subheader("How a PDF becomes a cited answer")

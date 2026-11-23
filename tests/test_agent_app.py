@@ -1,4 +1,4 @@
-"""Check the two-tab interface and configuration errors without a workspace."""
+"""Check the three-tab interface and configuration errors without a workspace."""
 
 from pathlib import Path
 
@@ -14,7 +14,7 @@ def test_app_renders_chat_architecture_and_resource_links(monkeypatch):
     monkeypatch.setenv("SOURCE_VOLUME", "catalog.rag.pdfs")
     app = AppTest.from_file(str(APP)).run()
     assert not app.exception
-    assert [tab.label for tab in app.tabs] == ["Chat", "Architecture"]
+    assert [tab.label for tab in app.tabs] == ["Chat", "Agent activity", "Architecture"]
     assert app.title[0].value == "Ask your PDFs"
     assert app.chat_input[0].placeholder == "Ask a question about your PDFs"
 
