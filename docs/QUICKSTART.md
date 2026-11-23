@@ -1,8 +1,7 @@
 # Deploy the PDF assistant
 
-This guide deploys your own copy of the solution. You will choose a workspace,
-create its resources, load sample PDFs, and open the app. Nothing needs to be
-deployed into the original author's workspace.
+This guide deploys the solution into your Databricks workspace. You will create
+its resources, load sample PDFs, and open the app.
 
 The word **bundle** below means the configuration files that describe the
 Databricks resources. A **profile** is a named Databricks CLI login that identifies
@@ -161,9 +160,9 @@ and trace. A high average can hide a poor answer to an important question.
 
 The initial 20 questions cover factual lookup, combining documents, follow-ups,
 and insufficient-evidence cases. Reference answers come from the sample PDFs and
-need customer review before being treated as approved truth. There is no fixed
-quality score that blocks this initial reference deployment. Review failures,
-fix defects, and use the measured baseline to compare your changes.
+need customer review before being treated as approved truth. Quality thresholds
+are optional and unset by default. Review failures, fix defects, and use the
+measured baseline to compare your changes.
 
 Evaluation calls models and incurs inference charges each time it runs.
 

@@ -102,7 +102,7 @@ Parsing, search preparation, extraction, embeddings, answers, and judges consume
 managed AI services. Apps, AI Search, pipeline runs, jobs, storage, and the trace
 warehouse can also incur costs. On-demand ingestion limits repeated processing;
 full refresh can repeat the expensive AI steps. There is no capacity or cost
-guarantee for the 1,000-PDF sizing assumption.
+guarantee for larger document collections.
 
 The search endpoint belongs to the bundle. Its index is created by the ingestion
 job after the source table exists. Before destroying the bundle, remove that

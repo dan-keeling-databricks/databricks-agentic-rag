@@ -131,11 +131,11 @@ The job also writes and logs these files as MLflow artifacts under
 By default these files are also written to `reports/evaluation/` in the execution
 environment. Use `--output-dir /Volumes/<catalog>/<schema>/<volume>/evaluations/<run>`
 if you want an additional durable copy from a job. MLflow artifacts remain the
-standard handover location even when a job's local filesystem is temporary.
+durable report location even when a job's local filesystem is temporary.
 
-Before handover, inspect failures and fix clear implementation defects. Describe
-remaining limitations honestly. No numerical quality score blocks this reference
-implementation's first deployment. Successful end-to-end execution is required.
+Inspect failures and fix implementation defects before relying on the results.
+Document remaining limitations. Quality thresholds are optional and unset by
+default; see below for how to configure them.
 
 When comparing runs, keep the question set and judge model fixed, change one
 component at a time, and inspect individual regressions as well as averages. An

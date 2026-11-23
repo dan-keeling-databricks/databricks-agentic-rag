@@ -117,5 +117,5 @@ with architecture_tab:
     if settings.use_ai_gateway:
         st.caption(f"The agent calls the Unity Gateway model service {settings.agent_endpoint}. Its link opens the containing Catalog Explorer schema; select the named service there.")
     st.subheader("What this reference implementation assumes")
-    st.markdown("The collection is shared and new files are added on demand. The 1,000-PDF figure is a sizing assumption, not a measured capacity claim. Replacing/deleting documents, persistent chat history, per-document permissions, production alerts, and other hardening steps are explained in the repository.")
+    st.markdown("The collection is shared and new files are added on demand. Validation used 29 sample PDFs; larger collections need separate capacity testing. Replacing/deleting documents, persistent chat history, per-document permissions, production alerts, and other hardening steps are explained in the repository.")
     st.caption("Questions, chat context and retrieved passages are recorded in MLflow for evaluation and troubleshooting. Review retention and sensitive-data handling before using private customer documents.")

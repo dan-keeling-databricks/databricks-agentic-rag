@@ -127,8 +127,8 @@ Other real-service checks exposed and resolved these compatibility details:
 
 ## Limits
 
-The 1,000-PDF figure remains a sizing assumption: no 1,000-document or concurrent
-user load test was performed. The question set uses three sample PDFs and awaits
+Validation used the 29-document sample; no 1,000-document or concurrent-user
+load test was performed. The question set uses three sample PDFs and awaits
 customer review. Missing diagram labels, wrong-entity answers, conservative
 abstention, and judge inconsistencies were observed. Page recall and valid
 citations alone do not prove useful or correct answers. These limitations are

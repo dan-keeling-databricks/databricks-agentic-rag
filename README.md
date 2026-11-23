@@ -51,9 +51,8 @@ find useful source material first, then ask the model to answer using it.
   against those documents, and instructions for comparing changes using MLflow.
 - Notes on what to change before operating this as a production service.
 
-The default demonstration uses **29 public Databricks PDFs**. The customer's
-**1,000-PDF corpus is a sizing assumption**, not a claim that this repository has
-been performance-tested with 1,000 PDFs.
+The sample contains **29 public Databricks PDFs**. Larger collections need
+separate performance and capacity testing.
 
 ## Deploy your own copy
 
@@ -91,7 +90,6 @@ see the quickstart before deploying.
 | [Validation record](docs/VALIDATION.md) | What was actually checked and any remaining limitations. |
 | [Operations](docs/OPERATIONS.md) | Adding documents, checking failures, permissions, costs, and cleanup. |
 | [Operational hardening](docs/HARDENING.md) | What to add for production access control, reliability, cost management, and quality assurance. |
-| [Agreed specification](docs/SPECIFICATION.md) | The scope and decisions behind the reference implementation. |
 | [Agent code](src/rag/agent.py) | How the bounded search-and-answer loop works. |
 | [Benchmark questions](evaluation/benchmark.jsonl) | Questions, reference answers, and source evidence used for evaluation. |
 

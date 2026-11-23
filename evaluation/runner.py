@@ -101,7 +101,7 @@ def evaluation_data(records: list[dict]) -> list[dict]:
 
 def make_scorers(judge: AIJudge, score_log: dict, lock: threading.Lock,
                  reference_answers: dict | None = None):
-    """Return MLflow scorers, keeping a plain JSON copy for the handover report."""
+    """Return MLflow scorers, keeping a plain JSON copy for the evaluation report."""
     from mlflow.entities import AssessmentSource, AssessmentSourceType, Feedback
     from mlflow.genai.scorers import scorer
 
@@ -220,7 +220,7 @@ def write_report(path: Path, summary: dict, rows: list[dict]) -> None:
               "- Page recall checks only the author-selected evidence pages. Other retrieved pages may contain equally useful evidence.",
               "- Citation validity checks references; the separate groundedness judge checks whether passages support claims.",
               "- AI judges can disagree with reviewers. Review their explanations, especially failures and surprising passes.",
-              "- A 1,000-PDF customer sizing assumption has not been load-tested by this benchmark.",
+              "- Larger document collections and concurrent users require separate load testing.",
               "", "Rerun the evaluation job after changing parsing, extraction, search, prompts, or models. "
               "Compare runs in MLflow using the same benchmark and judge configuration.", ""]
     path.write_text("\n".join(lines))
@@ -321,7 +321,7 @@ def main(argv=None) -> None:
         mlflow.log_artifacts(str(output), "evaluation_report")
         print(json.dumps(summary, indent=2), flush=True)
         if len(predictions) != len(data) or missing:
-            raise RuntimeError("Evaluation is incomplete. Inspect the report and MLflow scorer errors before handover.")
+            raise RuntimeError("Evaluation is incomplete. Inspect the report and MLflow scorer errors.")
         for threshold in args.minimum_score:
             name, minimum = threshold.rsplit("=", 1)
             if name not in summary["metrics"] or summary["metrics"][name] < float(minimum):

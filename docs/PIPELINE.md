@@ -75,7 +75,7 @@ status view flags the extraction problem.
 
 ## Sample documents
 
-`scripts/load_sample_documents.py` downloads the 29 public PDFs from the agreed
+`scripts/load_sample_documents.py` downloads the 29 PDFs from the public
 [dbdemos corpus](https://github.com/databricks-demos/dbdemos-dataset/tree/1a8743c8fe783b3ac42ab37aa18118387fb3c996/llm/databricks-pdf-documentation).
 The revision is pinned to `1a8743c8fe783b3ac42ab37aa18118387fb3c996` so a later
 upstream change does not silently alter the benchmark. It verifies Git blob
@@ -133,8 +133,8 @@ the customer's operational hardening work.
   extraction also uses version `2.0`. These built-in AI functions select their
   own platform-managed models; the configurable chat/judge models do not change
   those internal models.
-- The customer sizing assumption is 1,000 PDFs. The actual supplied sample has
-  29 PDFs; successful sample processing is not a 1,000-PDF performance test.
+- Validation used 29 sample PDFs. Test processing time, cost, and search capacity
+  with representative documents before deploying a larger collection.
 
 Official references: [AI document parsing](https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_parse_document),
 [AI search preparation](https://docs.databricks.com/aws/en/sql/language-manual/functions/ai_prep_search),

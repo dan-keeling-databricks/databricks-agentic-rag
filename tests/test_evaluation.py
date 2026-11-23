@@ -18,7 +18,7 @@ from scripts.smoke_agent import check_trace, trace_browser_url
 BENCHMARK = Path(__file__).resolve().parents[1] / "evaluation" / "benchmark.jsonl"
 
 
-def test_benchmark_covers_agreed_behaviors_and_has_page_evidence():
+def test_benchmark_covers_supported_behaviors_and_has_page_evidence():
     rows = load_benchmark(BENCHMARK)
     assert len(rows) == 20
     assert {row["category"] for row in rows} == {"factual", "multi_document", "follow_up", "unanswerable"}

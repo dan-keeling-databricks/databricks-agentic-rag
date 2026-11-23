@@ -25,8 +25,8 @@ PDFs and **await customer review**.
 | Slowest response | 84.9 seconds | The longest observed answer time. |
 
 Retrieval measures exclude the two questions that the documents cannot answer.
-All applicable scores were captured. No numerical quality gate was imposed for
-this reference implementation, as agreed.
+All applicable scores were captured. Optional quality thresholds were unset
+for this benchmark run.
 
 ## Answers and judgments that need attention
 
