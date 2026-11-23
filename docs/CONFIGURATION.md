@@ -16,7 +16,7 @@ settings after you understand the deployment steps.
 | --- | --- | --- |
 | `--profile` | Your explicitly chosen Databricks CLI authentication profile. | Required |
 | `--catalog` | An existing Unity Catalog catalog where the solution can create schemas. | Required |
-| `--warehouse-id` | A serverless SQL warehouse for reading MLflow's stored traces. | Required |
+| `--warehouse-id` | A usable SQL warehouse for reading MLflow's stored traces; serverless is preferred. | Required |
 | `--schema` | Dedicated schema for documents, model services and the search index. | `agentic_rag` |
 | `--app-name` | Workspace-unique Databricks App name. | `agentic-pdf-rag` |
 | `--search-endpoint` | Name of the managed AI Search endpoint. | `agentic-pdf-rag-search` |
@@ -47,10 +47,15 @@ the bundle. An embedding endpoint is configured separately from those services.
 
 ## Agent and app settings
 
-The bundle supplies these environment variables in
-[resources/app.app.yml](../resources/app.app.yml). For local use, set them in
-your shell and authenticate with your chosen CLI profile. Never put credentials
-in a configuration file committed to Git.
+The bundle supplies the core deployment settings in
+[resources/app.app.yml](../resources/app.app.yml). Optional agent settings, such
+as `MAX_SEARCHES` and `RETRIEVAL_K`, use the defaults below unless you add them to
+the app's `config.env` section and redeploy. The evaluation job sets its own
+`JUDGE_ENDPOINT`; it is not needed by the chat app. If you change agent settings,
+apply the same settings to the evaluation job when comparing its results.
+
+For local use, set variables in your shell and authenticate with your chosen CLI
+profile. Never put credentials in a configuration file committed to Git.
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
@@ -58,7 +63,7 @@ in a configuration file committed to Git.
 | `VECTOR_SEARCH_INDEX` | Fully qualified AI Search index name: `catalog.schema.index`. | Required |
 | `MLFLOW_EXPERIMENT_ID` | Deployed MLflow experiment for agent traces and evaluation. | Required to run the agent |
 | `USE_AI_GATEWAY` | Route model calls through Unity Gateway. Set `false` only when intentionally using a model-serving endpoint instead. | `true` |
-| `AI_GATEWAY_BASE_URL` | Optional explicit URL for a supported gateway deployment. Normally leave unset; the Databricks client determines the URL. | Unset |
+| `AI_GATEWAY_BASE_URL` | Optional explicit URL for a supported gateway deployment. Normally leave unset; the application uses your workspace's Unity Gateway URL. | Unset |
 | `MAX_SEARCHES` | Maximum searches per question; must be between 1 and 10. | `3` |
 | `RETRIEVAL_K` | Maximum passages returned per search; must be between 1 and 50. | `6` |
 | `MAX_CONTEXT_CHARACTERS` | Total retrieved-text characters allowed in an agent prompt. Complete passages that exceed the remaining budget are omitted. | `48000` |
@@ -69,6 +74,19 @@ MLflow uses `MLFLOW_TRACKING_URI`, defaulting to `databricks`. When running loca
 with a named profile, use `databricks://YOUR_PROFILE` and set
 `DATABRICKS_CONFIG_PROFILE=YOUR_PROFILE` for SDK clients. The deployed app uses its
 automatically provided service identity; it does not need a personal token.
+
+The runtime uses the pinned Databricks SDK and OpenAI client directly, with plain
+MLflow. The SDK keeps authentication refreshed while the application points its
+model client at the workspace's Unity Gateway route. This deliberately avoids
+the current `databricks-openai` package's local Spark/Databricks Connect dependency
+chain inside serverless jobs. The SDK factory is deprecated but supported by the
+pinned version; a future lean replacement can be adopted after compatibility
+testing. This does not change model access or require managing tokens yourself.
+
+The serverless evaluation job installs `mlflow-skinny` at the same pinned MLflow
+version. It includes GenAI evaluation and tracing while omitting unrelated model
+training and web-server packages. The app/local requirements use the full MLflow
+distribution; agent behavior, scorers, prompts, and MLflow API versions are shared.
 
 `MLFLOW_TRACING_SQL_WAREHOUSE_ID` identifies the warehouse used to read Unity
 Catalog traces. The bundle supplies it and grants the app's identity warehouse

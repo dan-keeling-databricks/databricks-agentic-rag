@@ -20,8 +20,8 @@ You need:
 - A Unity Catalog-enabled Databricks workspace and an existing catalog in which
   you can create the solution's schema, tables, and volume.
 - Permission to deploy Databricks Apps, jobs, pipelines, an MLflow experiment,
-  and AI Search resources, and to grant the app's service principal access to
-  the resources it needs.
+  and AI Search resources, and to grant the app's service principal (its own
+  identity for accessing resources) the access it needs.
 - A usable SQL warehouse. Serverless is preferred. It is used for trace queries
   and validation checks; its ID is not a password.
 - Access to compatible answer, judge, and embedding models. Defaults use
@@ -55,8 +55,9 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
-The environment activation command above is for macOS/Linux shells. On Windows,
-activate `.venv\Scripts\Activate.ps1` from PowerShell instead.
+The command examples in this guide use macOS/Linux shell syntax. On Windows,
+activate `.venv\Scripts\Activate.ps1` from PowerShell instead. Put commands shown
+across multiple lines on a single line, removing the trailing backslashes.
 
 ## 2. Choose and check your workspace
 

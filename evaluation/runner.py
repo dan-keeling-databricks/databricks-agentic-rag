@@ -31,6 +31,7 @@ def model_service_metadata(workspace, settings) -> dict:
             item["status"] = "not_using_unity_ai_gateway"
             continue
         try:
+            print(f"Evaluation: reading the {role} model's configured destination.", flush=True)
             name = endpoint if endpoint.startswith("model-services/") else f"model-services/{endpoint}"
             service = workspace.ai_gateway.get_model_service(name=name)
             # This allowlist records model identities/routing only. Provider
@@ -40,6 +41,7 @@ def model_service_metadata(workspace, settings) -> dict:
                          "routing": service.config.routing.as_dict() if service.config and service.config.routing else {}})
         except Exception as error:
             item.update({"status": "unavailable", "error_type": type(error).__name__})
+        print(f"Evaluation: {role} model destination metadata is {item['status']}.", flush=True)
     return metadata
 
 
@@ -82,16 +84,44 @@ class AIJudge:
         return result["pass"], result["rationale"]
 
 
-def make_scorers(judge: AIJudge, score_log: dict, lock: threading.Lock):
+def evaluation_data(records: list[dict]) -> list[dict]:
+    """Keep MLflow expectation annotations scalar; retain full records separately.
+
+    The target workspace's UC trace search returned empty serialized values for
+    list/dict expectations. The custom scorers read those values from the exact
+    benchmark records instead, without changing the benchmark or its meaning.
+    """
+    scalar_fields = ("expected_response", "answerable", "review_status", "corpus_revision")
+    return [
+        {"inputs": {**row["inputs"], "question_id": row["id"]},
+         "expectations": {key: row["expectations"][key] for key in scalar_fields}}
+        for row in records
+    ]
+
+
+def make_scorers(judge: AIJudge, score_log: dict, lock: threading.Lock,
+                 reference_answers: dict | None = None):
     """Return MLflow scorers, keeping a plain JSON copy for the handover report."""
     from mlflow.entities import AssessmentSource, AssessmentSourceType, Feedback
     from mlflow.genai.scorers import scorer
+
+    def reference_for(outputs, provided):
+        if reference_answers is None:
+            return provided
+        # Fail visibly on an unknown ID instead of scoring against incomplete or
+        # mismatched facts. The full question set is also logged as an artifact.
+        return reference_answers[outputs["question_id"]]
 
     def record(name, outputs, value, rationale):
         with lock:
             score_log.setdefault(outputs["question_id"], {})[name] = {
                 "value": value, "rationale": rationale
             }
+        # An empty feedback list is MLflow's supported "no assessment" result.
+        # Keep the N/A explanation in our report, but never send Feedback(None)
+        # to Databricks: its assessment API requires a value or an error.
+        if value is None:
+            return []
         source = None
         if name in {"correctness", "groundedness", "retrieval_quality"} and value is not None:
             source = AssessmentSource(source_type=AssessmentSourceType.LLM_JUDGE,
@@ -100,6 +130,7 @@ def make_scorers(judge: AIJudge, score_log: dict, lock: threading.Lock):
 
     @scorer
     def correctness(inputs, outputs, expectations):
+        expectations = reference_for(outputs, expectations)
         value, rationale = judge.assess(
             "The answer addresses the question in its chat history, contains the required reference "
             "facts, and does not contradict the reference answer. For an unanswerable question it "
@@ -111,6 +142,7 @@ def make_scorers(judge: AIJudge, score_log: dict, lock: threading.Lock):
 
     @scorer
     def groundedness(inputs, outputs, expectations):
+        reference_for(outputs, expectations)
         value, rationale = judge.assess(
             "Every substantive factual claim in the answer is supported by retrieved passages. "
             "For each citation, the cited source passage must support the associated claim. "
@@ -123,6 +155,7 @@ def make_scorers(judge: AIJudge, score_log: dict, lock: threading.Lock):
 
     @scorer
     def retrieval_quality(inputs, outputs, expectations):
+        expectations = reference_for(outputs, expectations)
         if not expectations["answerable"]:
             return record("retrieval_quality", outputs, None,
                           "Not applicable: no supporting passage is expected for this unanswerable question.")
@@ -136,16 +169,19 @@ def make_scorers(judge: AIJudge, score_log: dict, lock: threading.Lock):
 
     @scorer
     def valid_citations(outputs, expectations):
+        expectations = reference_for(outputs, expectations)
         value, rationale = citation_validity(outputs, expectations)
         return record("valid_citations", outputs, value, rationale)
 
     @scorer
     def evidence_recall(outputs, expectations):
+        expectations = reference_for(outputs, expectations)
         value, rationale = evidence_page_recall(outputs, expectations)
         return record("evidence_recall", outputs, value, rationale)
 
     @scorer(aggregations=["mean", "median", "p90", "max"])
     def latency_seconds(outputs):
+        reference_for(outputs, {})
         value = float(outputs["latency_seconds"])
         return record("latency_seconds", outputs, value,
                       "Wall-clock agent response time; excludes subsequent AI judging.")
@@ -202,24 +238,30 @@ def main(argv=None) -> None:
 
     # Limit parallel calls to shared endpoints. Customers can raise this explicitly.
     os.environ.setdefault("MLFLOW_GENAI_EVAL_MAX_WORKERS", "2")
+    print("Evaluation: importing MLflow and the agent libraries.", flush=True)
     import mlflow
     from databricks.sdk import WorkspaceClient
     from src.rag.agent import RagAgent, configure_tracing, create_model_client
     from src.rag.config import Settings
 
+    print("Evaluation: reading agent settings.", flush=True)
     settings = Settings.from_env()
     if not settings.mlflow_experiment_id:
         raise ValueError("Set MLFLOW_EXPERIMENT_ID to the deployed evaluation experiment.")
+    print("Evaluation: connecting to the configured MLflow experiment.", flush=True)
     mlflow.set_tracking_uri("databricks")
     mlflow.set_experiment(experiment_id=settings.mlflow_experiment_id)
+    print("Evaluation: configuring agent and model tracing.", flush=True)
     configure_tracing(settings)
+    print("Evaluation: loading the benchmark questions and reference answers.", flush=True)
     records = load_benchmark(args.benchmark)
     if args.limit is not None:
         if args.limit < 1:
             parser.error("--limit must be positive.")
         records = records[:args.limit]
-    data = [{"inputs": {**row["inputs"], "question_id": row["id"]},
-             "expectations": row["expectations"]} for row in records]
+    data = evaluation_data(records)
+    reference_answers = {row["id"]: row["expectations"] for row in records}
+    print("Evaluation: building the authenticated search, agent, and judge clients.", flush=True)
     workspace = WorkspaceClient()
     agent = RagAgent(settings, workspace_client=workspace)
     judge = AIJudge(create_model_client(settings, workspace), settings.judge_endpoint)
@@ -232,10 +274,14 @@ def main(argv=None) -> None:
             predictions[question_id] = result
         return result
 
+    print("Evaluation: recording benchmark and implementation fingerprints.", flush=True)
     benchmark_hash = hashlib.sha256(Path(args.benchmark).read_bytes()).hexdigest()
     implementation = implementation_fingerprint(Path(__file__).resolve().parents[1])
+    print("Evaluation: recording the configured model destinations.", flush=True)
     model_services = model_service_metadata(workspace, settings)
-    with mlflow.start_run(run_name=args.run_name):
+    print("Evaluation: starting the MLflow evaluation run.", flush=True)
+    with mlflow.start_run(run_name=args.run_name) as run:
+        print(f"Evaluation: MLflow run started: {run.info.run_id}", flush=True)
         mlflow.log_params({"benchmark_sha256": benchmark_hash, "question_count": len(data),
                            "agent_endpoint": settings.agent_endpoint, "judge_endpoint": settings.judge_endpoint,
                            "vector_search_index": settings.vector_search_index, "max_searches": settings.max_searches,
@@ -250,8 +296,10 @@ def main(argv=None) -> None:
         mlflow.log_artifact(args.benchmark, "benchmark")
         mlflow.log_dict(implementation, "evaluation_report/implementation.json")
         mlflow.log_dict(model_services, "evaluation_report/model_services.json")
+        print(f"Evaluation: asking {len(data)} questions and running the AI judges.", flush=True)
         results = mlflow.genai.evaluate(data=data, predict_fn=predict_fn,
-                                       scorers=make_scorers(judge, scores, lock))
+                                       scorers=make_scorers(judge, scores, lock, reference_answers))
+        print("Evaluation: writing results and the readable baseline report.", flush=True)
         output = Path(args.output_dir)
         output.mkdir(parents=True, exist_ok=True)
         rows = [{**row, "outputs": predictions.get(row["id"]), "scores": scores.get(row["id"], {})}
@@ -269,8 +317,9 @@ def main(argv=None) -> None:
         (output / "implementation.json").write_text(json.dumps(implementation, indent=2))
         (output / "model_services.json").write_text(json.dumps(model_services, indent=2))
         write_report(output / "BASELINE.md", summary, rows)
+        print("Evaluation: saving reports as durable MLflow artifacts.", flush=True)
         mlflow.log_artifacts(str(output), "evaluation_report")
-        print(json.dumps(summary, indent=2))
+        print(json.dumps(summary, indent=2), flush=True)
         if len(predictions) != len(data) or missing:
             raise RuntimeError("Evaluation is incomplete. Inspect the report and MLflow scorer errors before handover.")
         for threshold in args.minimum_score:

@@ -43,8 +43,8 @@ find useful source material first, then ask the model to answer using it.
   tables, pipeline, search index, jobs, and MLflow experiment.
 - A portable **Databricks bundle**: a set of configuration files that creates the
   solution's resources in your own workspace.
-- A pinned public sample corpus, a source-grounded benchmark, and instructions
-  for comparing changes using MLflow.
+- A fixed version of public sample PDFs, test questions with answers checked
+  against those documents, and instructions for comparing changes using MLflow.
 - Notes on what to change before operating this as a production service.
 
 The default demonstration uses **29 public Databricks PDFs**. The customer's
@@ -83,6 +83,8 @@ see the quickstart before deploying.
 | [Architecture](docs/ARCHITECTURE.md) | What each component does and how the pieces fit together. |
 | [Configuration](docs/CONFIGURATION.md) | Settings for your workspace, models, and agent behavior. |
 | [Evaluation](docs/EVALUATION.md) | How the benchmark, AI judges, and comparison runs work. |
+| [Measured baseline](docs/BASELINE.md) | Actual results from the initial 20-question benchmark, including weaknesses to review. |
+| [Validation record](docs/VALIDATION.md) | What was actually checked and any remaining limitations. |
 | [Operations](docs/OPERATIONS.md) | Adding documents, checking failures, permissions, costs, and cleanup. |
 | [Operational hardening](docs/HARDENING.md) | What to add for production access control, reliability, cost management, and quality assurance. |
 | [Agreed specification](docs/SPECIFICATION.md) | The scope and decisions behind the reference implementation. |

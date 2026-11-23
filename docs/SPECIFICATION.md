@@ -1,7 +1,8 @@
 # Databricks agentic document RAG — specification
 
-Status: specification agreed; implementation and workspace capability validation
-in progress.
+Status: specification agreed; implemented and deployed. Actual checks and
+measured quality limitations are recorded in [VALIDATION.md](VALIDATION.md) and
+[BASELINE.md](BASELINE.md).
 Created: 2026-11-23.
 
 This file is the durable source of truth for this project. Requirements recorded
@@ -29,8 +30,8 @@ Implement, validate, and deploy after the specification is agreed.
 | R7 | Tracing | Use MLflow for agent tracing. |
 | R8 | Evaluation | Use MLflow to benchmark behavior against questions and approved answers and support comparison of pipeline or agent configurations. |
 | R9 | Architecture tab | Explain the complete implemented flow in the app and link to the actual deployed Databricks components. |
-| R10 | Initial deployment | Deploy into the user's Azure Classic Stable workspace; exact CLI profile and host remain to be confirmed. |
-| R11 | Portability | Avoid hard-coded workspace identifiers; make customer adoption from GitHub straightforward. GitHub repository creation/publication destination remains unspecified. |
+| R10 | Initial deployment | Deploy into the user's Azure Classic Stable workspace; selected profile and host are recorded in section 6. |
+| R11 | Portability | Avoid hard-coded workspace identifiers; make customer adoption from GitHub straightforward. The private GitHub destination is recorded in section 6. |
 | R12 | Delivery process | Clarify ambiguities section by section, record agreed decisions durably, then implement, validate, and deploy. |
 
 ## Agreed architecture
@@ -41,10 +42,10 @@ Delta Sync AI Search index -> LangGraph retrieval and answer generation in a
 Databricks App. MLflow captures agent traces and benchmark evaluation runs.
 The app includes chat and architecture tabs.
 
-Proposed engineering conventions: configuration-driven deployment, a small
+Implemented engineering conventions: configuration-driven deployment, a small
 repository, reproducible resource definitions, and separate customer-neutral
 examples from local deployment settings. Streamlit and on-demand ingestion are
-agreed. Compute type, endpoint type, models, and resource names remain open.
+agreed. Final compute and model choices are recorded in the implementation status below.
 
 ## Clarification sequence
 
@@ -114,8 +115,8 @@ Agreed decisions:
 - Persistent chat history is outside the reference implementation scope; describe
   it as a hardening extension.
 
-Model/embedding endpoint selection and workspace capabilities will be resolved
-in section 6. Keep retrieval parameters configurable; no separate structured-data
+Model/embedding endpoint selection and workspace capabilities are recorded
+in section 6 and the implementation status below. Keep retrieval parameters configurable; no separate structured-data
 query engine is required by the agreed PDF-only scope.
 
 ### 4. App experience and access — AGREED
@@ -158,8 +159,8 @@ Agreed evaluation reporting and acceptance:
   Document remaining quality limitations. No numerical answer-quality deployment
   gate is required for this initial reference implementation.
 
-Dataset format, exact scorers, judge endpoint, and trace data handling remain to
-resolve through design and deployment configuration. Benchmark reference answers
+Dataset format, exact scorers, judge endpoint, and trace data handling are
+documented in [the evaluation guide](EVALUATION.md). Benchmark reference answers
 authored from the source PDFs must remain labelled pending customer review.
 
 ### 6. Deployment and portability — AGREED
@@ -179,10 +180,10 @@ Agreed decisions:
 - Prepare a repository locally, then push it to the `dan-keeling-databricks`
   GitHub account as private repository `databricks-agentic-rag`.
 
-Proposed implementation default: a dedicated `agentic_rag` schema in the selected
-catalog. Read-only inspection found no schema with that name. Keep it configurable.
-Keep target-specific deployment settings separate from customer-neutral examples.
-Workspace capability checks are in progress; no resources have been created.
+Implemented default: a dedicated `agentic_rag` schema and separate
+`agentic_rag_traces` schema in the selected catalog. These remain configurable.
+Target-specific deployment settings are kept in ignored local overrides;
+customer-neutral bundle configuration is committed to Git.
 
 ### 7. Documentation and final acceptance — AGREED
 
@@ -200,7 +201,7 @@ Create private GitHub repository `dan-keeling-databricks/databricks-agentic-rag`
 and push the local project. User explicitly requested a delivery goal and an agent
 execution team; goal created and pipeline, app, and evaluation agents assigned.
 
-## Technical verification backlog
+## Technical verification requirements
 
 - Verify current official APIs and actual Azure workspace support for all three
   document AI functions before committing to a runtime/compute design.
@@ -245,23 +246,33 @@ execution team; goal created and pipeline, app, and evaluation agents assigned.
 
 ## Implementation and deployment status
 
-Implementation completed across pipeline, app, and evaluation workstreams;
-integration and live validation are in progress. The primary agent owns the
-bundle, deployment, validation, and repository publication.
+Implemented and deployed: dedicated document and trace schemas, PDF volume,
+serverless Lakeflow pipeline, AI Search index, MLflow experiment, ingestion and
+evaluation jobs, Streamlit App, and two Unity AI Gateway model services.
 
-Created dedicated document and trace schemas, source volume, serverless pipeline,
-AI Search endpoint, MLflow experiment, jobs, Streamlit App, and two governed model
-services. The agent service uses GPT OSS 120B and the independent judge service
-uses Llama 3.3 70B. Both custom routes passed a real test request through Unity AI
-Gateway. AI Search uses a managed GTE embedding endpoint. AI function models
-remain platform-managed.
+The agent service uses `system.ai.gpt-oss-120b`; the independent judge uses
+`system.ai.llama_v3_3_70b_instruct`. Embeddings use `databricks-gte-large-en`.
+Document AI function models remain platform-managed. Ingestion uses serverless
+pipeline compute; the API-based evaluation task uses serverless environment 2
+(Python 3.11), matching Databricks Apps. A standard serverless SQL warehouse is
+used for trace access.
 
-Strict bundle validation and 30 local checks pass. All 29 pinned sample PDFs were
-uploaded; Auto Loader completed its first ingestion. The first AI preparation run
-is still processing, so no successful search/agent/evaluation baseline is claimed
-yet. The SQL warehouse did not expose ai_prep_search; the serverless PREVIEW
-pipeline accepted the graph and is being verified through actual execution.
+All 29 pinned sample PDFs completed Auto Loader ingestion and all three AI
+functions, producing 448 unique searchable chunks with valid page ranges. The
+search index is ready, and repeat ingestion/index refresh passed. AI Prep Search
+Preview had to be enabled; setup now checks that prerequisite.
 
-Private GitHub repository created at
-https://github.com/dan-keeling-databricks/databricks-agentic-rag . Final tested code
-and validation evidence have not yet been pushed.
+The app runs with normal Streamlit startup. Cited answers and follow-ups were
+verified, and full traces were read back from Unity Catalog. The app's own service
+identity separately verified retrieval, model access, cited answering, and tracing.
+The full 20-question real-service benchmark completed, with its actual results,
+failures, and judge limitations documented in [BASELINE.md](BASELINE.md). No
+1,000-PDF or concurrent-user load test is claimed.
+
+See [VALIDATION.md](VALIDATION.md) for final local checks, cloud evaluation-job
+verification, and deployment evidence. The customer adoption instructions are in
+[QUICKSTART.md](QUICKSTART.md), and production follow-on work is in
+[HARDENING.md](HARDENING.md).
+
+Private repository:
+https://github.com/dan-keeling-databricks/databricks-agentic-rag .

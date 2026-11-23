@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import threading
 from types import SimpleNamespace
 
 import pytest
@@ -10,7 +11,7 @@ from evaluation.checks import (
     IMPLEMENTATION_FILES, citation_validity, evidence_page_recall,
     implementation_fingerprint, load_benchmark,
 )
-from evaluation.runner import AIJudge, model_service_metadata, write_report
+from evaluation.runner import AIJudge, evaluation_data, make_scorers, model_service_metadata, write_report
 from scripts.smoke_agent import check_trace, trace_browser_url
 
 
@@ -85,7 +86,8 @@ def test_report_discloses_incomplete_scoring_and_specific_failures(tmp_path):
 
 def test_trace_verification_requires_model_retrieval_graph_and_actual_request():
     def span(kind):
-        return SimpleNamespace(span_type=kind, inputs={"query": "question"}, outputs={"text": "evidence"})
+        output = [{"page_content": "evidence"}] if kind == "RETRIEVER" else {"text": "evidence"}
+        return SimpleNamespace(span_type=kind, inputs={"query": "question"}, outputs=output)
     trace = SimpleNamespace(info=SimpleNamespace(request_time=150),
                             data=SimpleNamespace(request={"query": "question"},
                                                  spans=[span(k) for k in ["AGENT", "CHAIN", "CHAT_MODEL", "RETRIEVER"]]))
@@ -95,6 +97,18 @@ def test_trace_verification_requires_model_retrieval_graph_and_actual_request():
     trace.data.spans = [span("AGENT"), span("CHAIN"), span("RETRIEVER")]
     with pytest.raises(RuntimeError, match="model spans"):
         check_trace(trace, "question", 100, 200)
+
+
+def test_trace_verification_rejects_json_encoded_empty_retrieval():
+    spans = [SimpleNamespace(span_type=kind, inputs='{"query":"question"}', outputs='{"text":"reply"}')
+             for kind in ["AGENT", "CHAIN", "CHAT_MODEL"]]
+    retrieval = SimpleNamespace(span_type="RETRIEVER", inputs='{"query":"question"}', outputs=json.dumps(json.dumps([])))
+    trace = SimpleNamespace(info=SimpleNamespace(request_time=150),
+                            data=SimpleNamespace(request='{"query":"question"}', spans=spans + [retrieval]))
+    with pytest.raises(RuntimeError, match="retrieved evidence"):
+        check_trace(trace, "question", 100, 200)
+    retrieval.outputs = json.dumps(json.dumps([{"page_content": "actual evidence"}]))
+    assert check_trace(trace, "question", 100, 200)["retrieval_spans"] == 1
 
 
 def test_browser_link_strips_only_qualified_uc_prefix():
@@ -129,3 +143,56 @@ def test_model_service_snapshot_records_destinations_and_lookup_failures():
     assert result["agent"]["status"] == "resolved"
     assert result["agent"]["routing"]["destinations"][0]["pay_per_token_config"]["model"] == "system.ai.agent"
     assert result["judge"] == {"endpoint": "catalog.schema.judge", "status": "unavailable", "error_type": "PermissionError"}
+
+
+def test_scalar_mlflow_expectations_preserve_full_facts_and_evidence_for_scorers():
+    row = next(row for row in load_benchmark(BENCHMARK) if row["category"] == "multi_document")
+    data = evaluation_data([row])[0]
+    assert set(data["expectations"]) == {"expected_response", "answerable", "review_status", "corpus_revision"}
+    assert all(isinstance(value, (str, bool)) for value in data["expectations"].values())
+    payloads = []
+
+    class RecordingJudge:
+        endpoint = "judge-model"
+
+        def assess(self, criterion, payload):
+            payloads.append(payload)
+            return True, "Checked the full reference facts."
+
+    evidence = row["expectations"]["evidence"][0]
+    source = {"chunk_id": "one", "filename": evidence["filename"],
+              "page_start": evidence["page"], "page_end": evidence["page"], "content": evidence["quote"]}
+    outputs = {"question_id": row["id"], "answer": "answer", "sources": [source],
+               "retrieved_context": [source], "latency_seconds": 1.0}
+    scorers = {scorer.name: scorer for scorer in make_scorers(
+        RecordingJudge(), {}, threading.Lock(), {row["id"]: row["expectations"]})}
+    scorers["correctness"](inputs=data["inputs"], outputs=outputs, expectations=data["expectations"])
+    assert payloads[-1]["required_facts"] == row["expectations"]["expected_facts"]
+    scorers["retrieval_quality"](inputs=data["inputs"], outputs=outputs, expectations=data["expectations"])
+    assert payloads[-1]["required_facts"] == row["expectations"]["expected_facts"]
+    assert scorers["valid_citations"](outputs=outputs, expectations=data["expectations"]).value is True
+    # Both reference pages remain in the denominator despite scalar annotations.
+    assert scorers["evidence_recall"](outputs=outputs, expectations=data["expectations"]).value == 0.5
+    with pytest.raises(KeyError):
+        scorers["evidence_recall"](outputs={**outputs, "question_id": "unknown"}, expectations=data["expectations"])
+
+
+def test_not_applicable_scores_emit_no_null_feedback_but_remain_in_report():
+    row = next(row for row in load_benchmark(BENCHMARK) if row["category"] == "unanswerable")
+    data = evaluation_data([row])[0]
+    log = {}
+
+    class NoJudgeExpected:
+        endpoint = "judge"
+
+        def assess(self, criterion, payload):
+            raise AssertionError("An inapplicable retrieval check must not call a judge.")
+
+    scorers = {scorer.name: scorer for scorer in make_scorers(
+        NoJudgeExpected(), log, threading.Lock(), {row["id"]: row["expectations"]})}
+    outputs = {"question_id": row["id"], "retrieved_context": []}
+    for name in ["retrieval_quality", "evidence_recall"]:
+        feedback = scorers[name](inputs=data["inputs"], outputs=outputs, expectations=data["expectations"]) if name == "retrieval_quality" else scorers[name](outputs=outputs, expectations=data["expectations"])
+        assert feedback == []  # Not Feedback(value=None), which the backend rejects.
+        assert log[row["id"]][name]["value"] is None
+        assert "Not applicable" in log[row["id"]][name]["rationale"]

@@ -1,7 +1,7 @@
-# Runtime dependencies shared by the Streamlit app and evaluation job.
+# Dependencies for the Streamlit app and local evaluation.
+# The serverless job uses the same MLflow version's smaller SDK distribution.
 databricks-sdk==0.170.0
-databricks-openai==0.19.0
 langgraph==1.2.23
-mlflow[databricks]==3.18.0
+mlflow==3.18.0
 openai==2.54.0
 streamlit==1.67.0

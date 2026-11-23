@@ -27,6 +27,16 @@ not customer-approved ground truth. The PDFs describe products at their original
 publication dates; the benchmark tests faithful reading of those documents, not
 current product documentation.
 
+The full question set, including reference facts and evidence lists, is saved
+unchanged as a run artifact. For compatibility with the initially tested
+workspace, only simple values (the reference-answer text, answerable flag, review
+status, and source revision) are also written as MLflow expectation annotations.
+Custom scorers use the question ID to look up the complete reference record in
+memory, so facts and evidence remain part of every check. This avoids an observed
+UC trace-readback issue where list-valued expectations were returned as empty
+serialized JSON. It does not change the question set, weaken the scoring, or
+require a library patch or a second experiment.
+
 ## What gets measured?
 
 | Check | How it works | How to read it |
@@ -55,7 +65,8 @@ For local use, install the repository requirements, authenticate with the intend
 Databricks profile, and supply the app's configuration variables. Do not copy
 tokens into source files. For example, after configuring the selected profile and
 `AGENT_ENDPOINT`, `JUDGE_ENDPOINT`, `VECTOR_SEARCH_INDEX`, and
-`MLFLOW_EXPERIMENT_ID`:
+`MLFLOW_EXPERIMENT_ID`, plus `MLFLOW_TRACING_SQL_WAREHOUSE_ID` for the trace
+warehouse:
 
 ```bash
 export DATABRICKS_CONFIG_PROFILE="your-profile"
@@ -70,8 +81,22 @@ unanswerable question; plan for those additional model calls. Evaluation default
 to two parallel workers. Increase `MLFLOW_GENAI_EVAL_MAX_WORKERS` only after
 checking the model route's limits.
 
-To check wiring quickly, use `--limit 2`. This is labelled a smoke test in MLflow
-and is not a full benchmark result.
+To check the deployed job's wiring with one question before running the full set:
+
+```bash
+databricks bundle run evaluate_agent -t demo --profile YOUR_PROFILE --params question_limit=1
+```
+
+Then run the default full benchmark:
+
+```bash
+databricks bundle run evaluate_agent -t demo --profile YOUR_PROFILE
+```
+
+The job parameter `question_limit` defaults to `0`, meaning all 20 questions.
+Positive values evaluate only the first N questions; negative values are rejected.
+For a local smoke test, use `python -m evaluation.runner --limit 2`.
+Limited runs are labelled smoke tests in MLflow and are not full benchmark results.
 
 ## Read and compare results
 

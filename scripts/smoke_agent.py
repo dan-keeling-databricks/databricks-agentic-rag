@@ -25,12 +25,27 @@ def trace_browser_url(host: str, experiment_id: str, trace_id: str) -> str:
     return f"{host.rstrip('/')}/ml/experiments/{experiment_id}/traces/{browser_id}"
 
 
+def decode_trace_value(value):
+    """UC readback can return span values as one or more JSON-encoded strings."""
+    for _ in range(4):
+        if not isinstance(value, str):
+            break
+        try:
+            decoded = json.loads(value)
+        except (ValueError, TypeError):
+            break
+        if decoded == value:
+            break
+        value = decoded
+    return value
+
+
 def check_trace(trace, query: str, start_ms: int, end_ms: int) -> dict:
     if trace is None:
         raise RuntimeError("MLflow did not return the saved application trace.")
     if not start_ms <= trace.info.request_time <= end_ms:
         raise RuntimeError("The saved trace timestamp does not match this application request.")
-    if query not in json.dumps(trace.data.request, ensure_ascii=False, default=str):
+    if query not in json.dumps(decode_trace_value(trace.data.request), ensure_ascii=False, default=str):
         raise RuntimeError("The persisted trace does not contain this application question.")
     spans = trace.data.spans
     if not spans:
@@ -41,9 +56,16 @@ def check_trace(trace, query: str, start_ms: int, end_ms: int) -> dict:
     retrieval = [span for span in spans if str(span.span_type) == "RETRIEVER"]
     models = [span for span in spans if str(span.span_type) in {"CHAT_MODEL", "LLM"}]
     graph = [span for span in spans if str(span.span_type) == "CHAIN"]
-    if not retrieval or not any(span.outputs for span in retrieval):
+    def has_evidence(span):
+        documents = decode_trace_value(span.outputs)
+        return isinstance(documents, list) and any(
+            isinstance(item, dict) and (item.get("page_content") or item.get("content"))
+            for item in documents
+        )
+
+    if not retrieval or not any(has_evidence(span) for span in retrieval):
         raise RuntimeError("A persisted retrieval span with retrieved evidence is missing.")
-    if not models or not all(span.inputs and span.outputs for span in models):
+    if not models or not all(decode_trace_value(span.inputs) and decode_trace_value(span.outputs) for span in models):
         raise RuntimeError("Persisted model spans with request/response content are missing.")
     if not graph:
         raise RuntimeError("Persisted LangGraph CHAIN spans are missing.")
@@ -58,7 +80,9 @@ def ask_and_verify(agent, mlflow, workspace, settings, query, history, output: P
     end_ms = int(time.time() * 1000)
     trace_id = result.get("trace_id") or mlflow.get_last_active_trace_id()
     saved = {"trace_id": trace_id, "query": query, "request_start_ms": start_ms,
-             "request_end_ms": end_ms, "verified": False}
+             "request_end_ms": end_ms, "verified": False,
+             "source_count": len(result.get("sources") or []),
+             "search_count": result.get("search_count"), "answer": result.get("answer")}
     trace_file = output / f"{name}.json"
     trace_file.write_text(json.dumps(saved, indent=2))
     print(f"Saved application trace ID: {trace_id} ({trace_file})", flush=True)

@@ -27,7 +27,8 @@ def cli(profile, *arguments, capture=False):
 
 def grant(workspace, kind, name, principal, privileges):
     workspace.grants.update(
-        securable_type=kind, full_name=name,
+        securable_type=kind.value.lower() if hasattr(kind, "value") else str(kind).lower(),
+        full_name=name,
         changes=[PermissionsChange(principal=principal, add=privileges)],
     )
 

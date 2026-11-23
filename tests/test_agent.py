@@ -6,10 +6,10 @@ from types import SimpleNamespace
 import mlflow
 import pytest
 
-from src.rag.agent import INSUFFICIENT_EVIDENCE, RagAgent, render_claims
+from src.rag.agent import INSUFFICIENT_EVIDENCE, RagAgent, create_model_client, render_claims
 from src.rag.config import Settings
 from src.rag.links import architecture_links, trace_url
-from src.rag.retrieval import decode_search_results
+from src.rag.retrieval import decode_search_results, page_number
 
 
 @pytest.fixture(autouse=True)
@@ -52,6 +52,43 @@ class FakeRetriever:
 def agent(model, retriever, **settings):
     return RagAgent(Settings("model", "test.rag.index", **settings),
                     workspace_client=object(), model_client=model, retriever=retriever)
+
+
+@pytest.mark.parametrize("gateway,configured_url,expected_url", [
+    (True, "", "https://workspace.example/ai-gateway/mlflow/v1/"),
+    (False, "", "https://workspace.example/serving-endpoints/"),
+    (True, "https://workspace.example/custom-gateway", "https://workspace.example/custom-gateway/"),
+])
+def test_model_client_retains_sdk_client_and_uses_configured_route(gateway, configured_url, expected_url):
+    client = SimpleNamespace(base_url="https://workspace.example/serving-endpoints/")
+    arguments = {}
+
+    def sdk_factory(**kwargs):
+        arguments.update(kwargs)
+        return client
+
+    workspace = SimpleNamespace(
+        config=SimpleNamespace(host="workspace.example/"),
+        serving_endpoints=SimpleNamespace(get_open_ai_client=sdk_factory),
+    )
+    settings = Settings("model", "test.rag.index", use_ai_gateway=gateway,
+                        ai_gateway_base_url=configured_url)
+    result = create_model_client(settings, workspace)
+    assert result is client  # Keep the SDK-created client and its refreshing auth.
+    assert result.base_url == expected_url
+    assert arguments == {"timeout": 60, "max_retries": 2}
+
+
+def test_gateway_json_mode_has_literal_lowercase_json_in_messages():
+    # Gateway validates the message text before inference. Its json_object
+    # contract requires the literal lowercase word, even if other instructions
+    # already mention the uppercase acronym JSON.
+    model = FakeModel([{"search_query": "question"}])
+    agent(model, FakeRetriever([[]])).answer("A question")
+    request = model.requests[0]
+    assert request["response_format"] == {"type": "json_object"}
+    assert any(message["role"] == "user" and "json" in message["content"]
+               for message in request["messages"])
 
 
 def test_search_limit_terminates_even_when_evidence_never_suffices():
@@ -111,7 +148,7 @@ def test_follow_up_context_is_passed_but_not_retained_between_calls():
     shared.answer("How does it work?", history=[{"role": "user", "content": "Tell me about Auto Loader"}])
     shared.answer("New session question")
     assert "Tell me about Auto Loader" in model.requests[0]["messages"][1]["content"]
-    assert json.loads(model.requests[3]["messages"][1]["content"])["history"] == []
+    assert json.loads(model.requests[3]["messages"][1]["content"].split("\n", 1)[1])["history"] == []
 
 
 def test_index_manifest_order_is_respected_and_unknown_pages_are_excluded():
@@ -122,6 +159,25 @@ def test_index_manifest_order_is_respected_and_unknown_pages_are_excluded():
     assert len(result) == 1
     assert result[0]["page_start"] == 2
     assert result[0]["content"] == "text"
+
+
+def test_ai_search_float_page_numbers_preserve_exact_citation_range():
+    result = decode_search_results({
+        "manifest": {"columns": [{"name": n} for n in [
+            "chunk_id", "chunk_to_retrieve", "source_path", "filename", "page_start", "page_end", "score",
+        ]]},
+        "result": {"data_array": [["chunk-1", "A passage.", "/Volumes/c/s/v/guide.pdf", "guide.pdf", 5.0, 7.0, 0.92]]},
+    })
+    assert len(result) == 1
+    assert result[0]["page_start"] == 5
+    assert result[0]["page_end"] == 7
+    assert isinstance(result[0]["page_start"], int)
+    assert isinstance(result[0]["page_end"], int)
+
+
+@pytest.mark.parametrize("value", [True, False, float("nan"), float("inf"), float("-inf"), 1.5, -1, -1.0, 0, 0.0, "5", None])
+def test_invalid_page_numbers_are_rejected_without_rounding(value):
+    assert page_number(value) is None
 
 
 @pytest.mark.parametrize("host", ["https://workspace.example", "https://workspace.example/", "workspace.example", "workspace.example/"])

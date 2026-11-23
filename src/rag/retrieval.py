@@ -1,10 +1,23 @@
 """Retrieve text and its page references from the managed AI Search index."""
 
+import math
+
 import mlflow
 
 SEARCH_COLUMNS = [
     "chunk_id", "chunk_to_retrieve", "source_path", "filename", "page_start", "page_end",
 ]
+
+
+def page_number(value):
+    """AI Search may serialize an integer column as an exact JSON float."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 1 else None
+    if isinstance(value, float) and math.isfinite(value) and value.is_integer() and value >= 1:
+        return int(value)
+    return None
 
 
 def decode_search_results(response):
@@ -16,10 +29,11 @@ def decode_search_results(response):
         item = dict(zip(names, row))
         content = item.get("chunk_to_retrieve")
         # A source without known page provenance cannot support a page citation.
-        start, end = item.get("page_start"), item.get("page_end")
+        start = page_number(item.get("page_start"))
+        end = page_number(item.get("page_end"))
         if not content or not item.get("chunk_id") or not item.get("filename"):
             continue
-        if not isinstance(start, int) or not isinstance(end, int) or start < 1 or end < start:
+        if start is None or end is None or end < start:
             continue
         documents.append({
             "content": content,
