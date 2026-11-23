@@ -58,7 +58,7 @@ history; the answer and evidence annotations are reserved for scoring.
 These are **author-derived reference answers awaiting customer review**, not
 customer-approved truth. The benchmark checks faithful reading of those PDFs,
 not whether their historical product descriptions are still current. The
-[historical baseline](BASELINE.md) used an earlier question set with source-title
+[historical baseline](HISTORICAL_BASELINE.md) used an earlier question set with source-title
 cues; its scores do not measure the current questions or this managed workflow.
 
 ### How reference facts and pages are stored
@@ -138,9 +138,10 @@ when testing a change. A Unity Gateway service name is a route: its backing mode
 can change even when the service name stays the same. Record that change when
 interpreting a comparison.
 
-The repository's historical baseline is a handover record. New managed runs are
-read in MLflow; this migration does not imply any new measured score. Fix clear
-implementation defects, document remaining limitations, and agree meaningful
+The [measured baseline](BASELINE.md) records the first completed native run:
+20 questions, 116 applicable assessments, and 85% correctness. Read subsequent
+managed runs in MLflow. Fix clear implementation defects, document remaining
+limitations, and agree meaningful
 quality and latency thresholds with the customer after reviewing a baseline.
 No automatic production-monitoring schedule or numerical release gate is enabled
 by this reference.

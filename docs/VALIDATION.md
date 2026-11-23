@@ -1,9 +1,9 @@
 # Validation record
 
 The end-to-end PDF pipeline, search, app, follow-up questions, persisted traces,
-and an earlier 20-question AI-judged benchmark have been verified. The current
-benchmark removes source-title hints and needs a fresh scored run. This file records
-observed results. Read [the measured baseline](BASELINE.md) for answer-quality
+and native MLflow evaluation have been verified. The current benchmark removes
+source-title hints and completed all 20 questions. This file records observed
+results. Read [the measured baseline](BASELINE.md) for answer-quality
 failures and limitations.
 
 ## Environment and source data
@@ -25,7 +25,7 @@ failures and limitations.
 | Check | Result |
 | --- | --- |
 | Strict bundle validation | Passed with explicit target and profile. |
-| Local regression suite, including live SQL checks | 78 passed; one third-party SQLAlchemy deprecation warning. |
+| Current local regression suite | 82 passed; three live SQL tests skipped; one third-party SQLAlchemy deprecation warning. The SQL conversion's separate live checks are recorded below. |
 | Download integrity | Git blob hashes verified; manifest and NOTICE preserved. |
 | Real Gateway model calls | Answer and judge services both passed. |
 | PDFs in saved ingestion/parsing/preparation stages | 29 in each stage. |
@@ -39,16 +39,49 @@ failures and limitations.
 | Live cited answer and session follow-up | Both passed against deployed services. |
 | Full persisted traces | Both read back from Unity Catalog: 11 spans each, including AGENT, CHAIN, CHAT_MODEL, and RETRIEVER. |
 | App's own identity | Real retrieval, model call, cited answer, and persisted trace verified under the app service principal. |
-| Full benchmark | 20/20 questions completed using real deployed services; details below. |
-| Persisted benchmark assessments | All 116 applicable assessments verified against captured values and rationales; no missing or duplicate feedback. |
-| Serverless evaluation job | One-question smoke run terminated SUCCESS; report artifacts saved, zero missing assessments. Quality limitation recorded below. |
-| Repository | Created private; final source and documentation pushed to GitHub. |
+| Native managed benchmark | 20/20 questions completed; 85% correctness; named dataset/version lineage recorded. |
+| Persisted native assessments | All 116 applicable assessments verified; no null, missing, duplicate or error feedback. |
+| Serverless evaluation notebook | Full 20-question job terminated SUCCESS; native MLflow results saved. |
+| Managed setup | Serverless notebook succeeded; repeating setup preserved all 20 saved questions and dataset version 1. |
+| Scorer registry | Seven saved definitions; six active metrics; all version 1, with the retrieval judge dependency pinned. |
+| Repository | Source and documentation pushed to GitHub; repository is public. |
 
 Verified trace examples:
 
 - [First cited answer](https://adb-7405617409436848.8.azuredatabricks.net/ml/experiments/175182949588215/traces/a3427cffba2a56f263a969d9104d89d9).
 - [Session follow-up](https://adb-7405617409436848.8.azuredatabricks.net/ml/experiments/175182949588215/traces/c600f0de4fd18126ddce0de18e5d6f57).
 - [App service identity](https://adb-7405617409436848.8.azuredatabricks.net/ml/experiments/175182949588215/traces/2356c3ccbbca03a5e3358a13c7714d21).
+
+## Native MLflow evaluation
+
+[Serverless job run 505897162147458](https://adb-7405617409436848.8.azuredatabricks.net/jobs/924395035538194/runs/505897162147458)
+and [MLflow evaluation run e453f577c3ba4d29a972cd3ac767f688](https://adb-7405617409436848.8.azuredatabricks.net/ml/experiments/175182949588215/evaluation-runs/e453f577c3ba4d29a972cd3ac767f688/details)
+both completed successfully. Evaluation read the managed
+`classic_stable_dankeeling.agentic_rag.evaluation_questions` dataset at version 1
+and used registered scorer versions, calling the same agent as the app.
+
+Native run input lineage identifies the Unity Catalog table, dataset ID and
+version, with digest `6e325a7c0eb675802402aa624bc1f110`. The experiment's Datasets
+UI showed all 20 editable records; its Scorers UI showed the three native AI
+judges and four code definitions, including the N/A-aware retrieval wrapper.
+
+Readback found exactly q01–q20 and all 116 applicable assessments: 20 correctness,
+20 groundedness, 18 retrieval quality, 20 citation validity, 18 page recall and
+20 latency. All required-fact and evidence JSON strings were preserved. The four
+inapplicable retrieval assessments were absent as intended. No assessments were
+repaired or overwritten.
+
+Correctness was 85%, groundedness 100%, retrieval quality 94.4%, citation validity
+90%, and average reference-page recall 94.4%. Mean agent latency was 11.34 seconds,
+median 9.58 seconds, p90 15.77 seconds and maximum 23.34 seconds. Failed answers
+and potentially strict judge decisions remain visible; see [the baseline](BASELINE.md).
+
+The standalone runner and custom report generator have been removed. The native
+notebooks retrieve managed assets and call `mlflow.genai.evaluate()`. Unit checks
+exercise source-only scorer serialization and execution, immutable dependency
+versions, dataset preservation, reference/input isolation and N/A behavior.
+Strict bundle validation passed. The app deployment succeeded with direct links
+to the experiment's Datasets, Scorers and Evaluation runs.
 
 ## Historical benchmark evidence
 
@@ -79,7 +112,7 @@ failures, and provenance. Readback verified them. No predictions, judgments, or
 aggregate metrics were changed. The fix skips inapplicable annotations and is
 covered by regression tests. The run artifacts include an annotation-repair note.
 
-## Deployed evaluation job
+## Earlier evaluation job (historical)
 
 [Serverless job run 841001347486225](https://adb-7405617409436848.8.azuredatabricks.net/jobs/924395035538194/runs/841001347486225)
 terminated **SUCCESS**, using `question_limit=1`. It installed the dependencies,
@@ -123,8 +156,6 @@ Other real-service checks exposed and resolved these compatibility details:
 - Permission updates require a string securable type.
 - SQL validation explicitly requests inline JSON because default Arrow responses
   do not populate `data_array`.
-- Spark Python task execution may omit `__file__`; the evaluation entrypoint
-  resolves its deployed script path through `sys.argv[0]` instead.
 
 ## Limits
 
@@ -219,6 +250,5 @@ Benchmark SHA-256: `c4c9644551f4027071bd975e940e04a6f0527434e59dacff49bc7d8a99f5
 
 The evaluation integrity checks verify both the absence of document-routing cues
 in the current inputs and the separation of reference data from agent inputs.
-The earlier measured scores above are retained as historical evidence. They are
-not a baseline for this revised question set; no new answer-quality score is
-claimed until a full evaluation completes.
+The native evaluation above measures this revised question set. Earlier scores
+are retained as historical evidence and use different questions and judges.

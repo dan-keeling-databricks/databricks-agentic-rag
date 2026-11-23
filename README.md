@@ -92,7 +92,7 @@ see the quickstart before deploying.
 | [Architecture](docs/ARCHITECTURE.md) | What each component does and how the pieces fit together. |
 | [Configuration](docs/CONFIGURATION.md) | Settings for your workspace, models, and agent behavior. |
 | [Evaluation](docs/EVALUATION.md) | How the benchmark, AI judges, and comparison runs work. |
-| [Historical baseline](docs/BASELINE.md) | Results and weaknesses from the earlier question set; the current questions require a fresh evaluation. |
+| [Measured baseline](docs/BASELINE.md) | Native MLflow results, failed examples, and limitations for the current questions. |
 | [Validation record](docs/VALIDATION.md) | What was actually checked and any remaining limitations. |
 | [Operations](docs/OPERATIONS.md) | Adding documents, checking failures, permissions, costs, and cleanup. |
 | [Operational hardening](docs/HARDENING.md) | What to add for production access control, reliability, cost management, and quality assurance. |

@@ -124,7 +124,7 @@ Open the app URL printed by setup. You can also find the app in your workspace's
 
 Try:
 
-> According to the ingestion ebook, what is Auto Loader used for?
+> What is Auto Loader used for?
 
 Then ask a follow-up:
 
